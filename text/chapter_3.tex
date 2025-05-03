@@ -1,39 +1,193 @@
+% Solution design chapter % 
+
 \begin{chapterabstract}
 % put abstract here %
 \end{chapterabstract}
 
+\section{Technologies}
+
+\subsection{Library \texttt{devtools}}
+
+The \texttt{devtools} package streamlines R package development by providing functions to create package skeletons, load code, run tests, and build documentation in a single workflow \cite{wickham2019devtools}. It integrates tightly with \texttt{roxygen2} for in‐source documentation and with continuous integration services.
+
+\begin{verbatim}
+# Create a new package skeleton
+library(devtools)
+create("MyPackage")
+
+# Load all R code without installing
+load_all("MyPackage/")
+
+# Run tests in tests/testthat/
+test("MyPackage")
+
+# Document and build package
+document("MyPackage/")
+build("MyPackage/")
+\end{verbatim}
+
+By automating these repetitive tasks, \texttt{devtools} reduces boilerplate and accelerates iterative development.
+
+\subsection{Library \texttt{jsonlite}}
+
+The \texttt{jsonlite} package provides a robust, high‐performance JSON parser and generator for R, supporting both streaming and in‐memory operations. It maps R objects to JSON with consistent type coercion rules, making it ideal for API interaction and data interchange \cite{ooms2014jsonlite}.
+
+\begin{verbatim}
+library(jsonlite)
+
+# Parse JSON string into R list/data.frame
+json_data <- fromJSON('{"x":1,"y":[2,3],"z":{"a":true}}')
+
+# Convert R object back to pretty JSON
+json_pretty <- toJSON(json_data, pretty = TRUE)
+cat(json_pretty)
+\end{verbatim}
+
+This two-way mapping ensures round-trip fidelity when exchanging data with web services.
+
+\subsection{Library \texttt{httr}}
+
+\texttt{httr} simplifies working with HTTP from R by wrapping low‐level HTTP methods in user-friendly functions. It handles authentication, redirection, and cookies, and parses responses into R objects \cite{wickham2011httr}.
+
+\begin{verbatim}
+library(httr)
+
+# Basic GET request
+resp <- GET("https://api.example.com/data",
+            add_headers(Accept = "application/json"))
+
+# Check for HTTP errors
+stop_for_status(resp)
+
+# Parse JSON content
+data <- content(resp, as = "parsed")
+\end{verbatim}
+
+For POST requests with JSON payloads, \texttt{httr} manages encoding and content‐type headers automatically.
+
+\subsection{Library \texttt{furrr}}
+
+The \texttt{furrr} package combines the mapping functions of \texttt{purrr} with the parallel execution capabilities of the \texttt{future} framework, allowing seamless parallel iteration in R \cite{Vaughan2020furrr}.
+
+\begin{verbatim}
+library(furrr)
+plan(multisession, workers = 4)
+
+# Parallel map over a vector
+results <- future_map(1:10, function(x) {
+  Sys.sleep(1)  # simulate work
+  x^2
+})
+\end{verbatim}
+
+By changing the \texttt{plan()}, you can switch between multicore, multisession, or cluster‐based execution with minimal code changes.
+
+\subsection{GoogleTest}
+
+GoogleTest is Google’s C++ testing framework offering rich assertions, test fixtures, and death tests for verifying code correctness. Its expressive macros and automatic test discovery facilitate maintainable C++ test suites \cite{google2023gtest}.
+
+\begin{verbatim}
+// example.cpp
+#include <gtest/gtest.h>
+
+// Function under test
+int square(int x) {
+  return x * x;
+}
+
+// Test case
+TEST(SquareTest, HandlesPositive) {
+  EXPECT_EQ(square(3), 9);
+  EXPECT_NE(square(3), 8);
+}
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+\end{verbatim}
+
+Compile and run with:
+\begin{verbatim}
+g++ example.cpp -lgtest -pthread -o example_test
+./example_test
+\end{verbatim}
+
+\subsection{OpenAI API}
+
+The OpenAI API provides RESTful endpoints for interacting with language models. Using \texttt{httr} in R, you can send requests and handle responses for completions, embeddings, and more \cite{openai2023api}.
+
+\begin{verbatim}
+library(httr)
+library(jsonlite)
+
+api_key <- Sys.getenv("OPENAI_API_KEY")
+
+resp <- POST(
+  "https://api.openai.com/v1/completions",
+  add_headers(Authorization = paste("Bearer", api_key)),
+  content_type_json(),
+  encode = "json",
+  body = list(
+    model       = "text-davinci-003",
+    prompt      = "Summarize the benefits of mutation testing:",
+    max_tokens  = 100,
+    temperature = 0.7
+  )
+)
+
+stop_for_status(resp)
+result <- content(resp, as = "parsed")
+cat(result$choices[[1]]$text)
+\end{verbatim}
+
+This integration enables programmatic access to advanced NLP capabilities directly from R.
+
+
 \section{Design constraint}
+
+Designing a mutation testing tool for the R language requires careful consideration of multiple constraints to ensure usability, maintainability, and performance in production environments.
+
+\subsection{Customer Requirements}
+The tool must cater to R users—ranging from data scientists to statisticians—by providing:
+\begin{itemize}
+  \item \textbf{Seamless Integration:} A familiar API that builds on \texttt{testthat} conventions, minimizing learning curve \cite{wickham2011testthat}.
+  \item \textbf{Ease of Installation:} Simple installation via CRAN or \texttt{devtools::install\_github()}, with minimal external dependencies \cite{wickham2019devtools}.
+  \item \textbf{Clear Reporting:} Human‐readable mutation score summaries and detailed mutant tracebacks for straightforward interpretation.
+\end{itemize}
+
+\subsection{Business Needs}
+From an organizational standpoint, the tool must:
+\begin{itemize}
+  \item \textbf{Cost Efficiency:} Leverage existing infrastructure (R, CI/CD) to avoid additional licensing or hardware costs.
+  \item \textbf{Return on Investment:} Provide actionable insights that improve test suite quality and reduce production defects, as shown by improved test robustness metrics in industry case studies \cite{petrovic2018industrial}.
+  \item \textbf{Adoption and Support:} Comply with CRAN policies and support major R versions (≥3.6) to maximize user adoption and community contributions \cite{rcore2024}.
+\end{itemize}
+
+\subsection{Performance Constraints}
+Mutation testing is inherently compute‐intensive, so the tool must:
+\begin{itemize}
+  \item \textbf{Parallel Execution:} Utilize parallel backends (e.g., \texttt{furrr} or \texttt{future}) to distribute mutant executions across cores or nodes \cite{Vaughan2020furrr}.
+  \item \textbf{Incremental Analysis:} Cache previous results and only re‐test affected mutants after code changes to avoid full-suite re‐execution on every run \cite{petrovic2018industrial}.
+  \item \textbf{Resource Limits:} Allow users to configure timeouts and memory caps per mutant to prevent runaway tests and ensure predictable CI job durations.
+\end{itemize}
+
+\subsection{Scalability}
+To handle large codebases and extensive test suites:
+\begin{itemize}
+  \item \textbf{Modular Architecture:} Separate mutation generation, test execution, and reporting into distinct components to facilitate horizontal scaling.
+  \item \textbf{Streaming Results:} Emit partial reports as mutants are processed, enabling early feedback and integration with dashboards.
+  \item \textbf{Batching:} Group mutants into batches to optimize test runner startup overhead and reduce per‐mutant initialization costs.
+\end{itemize}
+
+\subsection{Compatibility and Maintainability}
+Ensuring the long‐term viability of the tool involves:
+\begin{itemize}
+  \item \textbf{R Version Support:} Test and certify compatibility with current and LTS releases of R and common package ecosystems (e.g., Bioconductor) \cite{gentleman2004bioconductor}.
+  \item \textbf{Cross‐Platform Functionality:} Support Linux, Windows, and macOS environments with identical behavior.
+  \item \textbf{Extensibility:} Provide plugin hooks for custom mutation operators and integration with other R-based tools (e.g., code coverage, linters).
+\end{itemize}
 
 \section{Application data flow}
 
 %Data flow diagram showing where the data is coming from and where going %
-
-\section{Technologies}
-
-\subsection{GoogleTest}
-%put google test here%
-
-\subsection{Library rcpp11}
-%put rcpp11 here%
-
-\subsection{Library furrr}
-
-\subsection{Library testthat}
-
-\section{Implementation Decisions}
-
-\subsection{Mutator class}
-
-%put some pseudocode here%
-
-\subsection{ASTHandler class}
-
-%put some pseudocode here%
-
-\subsection{mutateR class}
-
-%put some pseudocode here%
-
-\subsection{Operators hierarchy}
-
-%put some pseudocode here, maybe a class diagram%

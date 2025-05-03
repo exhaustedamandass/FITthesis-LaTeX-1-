@@ -1,7 +1,7 @@
 % Background %
 
 \begin{chapterabstract}
-This chapter begins with a comprehensive overview of mutation testing, a fault‐injection technique that quantifies test suite effectiveness by introducing small syntactic changes—mutants—into code and measuring the mutation score (the ratio of killed to generated mutants) to uncover weaknesses beyond traditional coverage metrics \cite{jia2011analysis,offutt1996practical,petrovic2018industrial}. We then introduce the R language, highlighting its rich ecosystem for statistical computing and data analysis, and the \texttt{testthat} framework for writing expressive unit tests within R packages \cite{rcore2024,wickham2011testthat}. Finally, we delve into R’s C API internals—focusing on the \texttt{SEXP} type, memory protection, and the traversal of pairlists via \texttt{CAR()}, \texttt{CDR()}, and \texttt{TAG()}—to illustrate how low‐level structures underpin R’s object model \cite{hadley-r-internals-pairlists}.  
+This chapter begins with a comprehensive overview of mutation testing, a fault‐injection technique that quantifies test suite effectiveness by introducing small syntactic changes—mutants—into code and measuring the mutation score (the ratio of killed to generated mutants) to uncover weaknesses beyond traditional coverage metrics \cite{jia2011analysis,offutt1996practical,petrovic2018industrial}. We present Mutatr, an R package for prototype‐based mutable objects—heavily inspired by the Io language and JavaScript—which enables the dynamic creation and manipulation of mutated object states to support custom mutation operators in testing workflows \cite{hadley-mutatr,iolanguage}. We then introduce the R language, highlighting its rich ecosystem for statistical computing and data analysis, and the \texttt{testthat} framework for writing expressive unit tests within R packages \cite{rcore2024,wickham2011testthat}. Finally, we delve into R’s C API internals—focusing on the \texttt{SEXP} type, memory protection, and the traversal of pairlists via \texttt{CAR()}, \texttt{CDR()}, and \texttt{TAG()}—to illustrate how low‐level structures underpin R’s object model \cite{hadley-r-internals-pairlists}.  
 
 \end{chapterabstract}
 
@@ -50,6 +50,33 @@ The industrial importance of mutation testing has been demonstrated notably by P
     \caption{An Example of Mutation Operation ~\cite{offutt2010mutation}.}
     \label{fig:MutationOperation}
 \end{figure}
+
+\subsection{Mutatr}
+
+Mutatr is an R package providing prototype‐based mutable objects, enabling in‐memory mutation of R object state without altering the original prototypes \cite{hadley-mutatr}. Inspired by the Io language and JavaScript’s object model, it offers a concise API for defining prototypes, cloning them, and applying direct field mutations—features that can be leveraged to implement custom mutation operators or to generate dynamic test fixtures in R-based mutation testing pipelines \cite{iolanguage}.
+
+\begin{verbatim}
+# Install Mutatr from GitHub
+if (!requireNamespace("devtools", quietly = TRUE)) {
+  install.packages("devtools")
+}
+devtools::install_github("hadley/mutatr")
+
+library(mutatr)
+
+# Define a simple prototype with initial state
+proto <- mutatr::prototype(list(count = 0, flag = TRUE))
+
+# Clone the prototype and apply mutations
+mutant <- clone(proto)
+mutant$count <- mutant$count + 1
+mutant$flag  <- FALSE
+
+# Inspect mutated object
+print(mutant)
+\end{verbatim}
+
+By integrating Mutatr-driven object mutations into test suites—e.g., verifying that functions behave correctly when object state changes—developers can extend traditional code-level mutation testing with stateful, object-oriented mutation scenarios.
 
 \section{R language}
 
