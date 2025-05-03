@@ -3,19 +3,416 @@
 %put some pseudocode here, maybe a class diagram%
 
 \begin{chapterabstract}
-% put abstract here %
+This chapter details the implementation of the mutation testing tool, combining native C++ code with a high-level R interface. We begin by presenting the C++ core—\texttt{C\_mutate\_file} and \texttt{C\_mutate\_single}—which leverage R’s \texttt{SEXP} API to traverse ASTs (via \texttt{ASTHandler}) and apply operator‐flip and delete mutations (via \texttt{Mutator}), supported by a modular operator class hierarchy for arithmetic, logical, unary, and delete operations \cite{rcore2024,hadley-r-internals-pairlists}. Next, we describe the R side: \texttt{mutate\_package} orchestrates per‐file mutations (\texttt{mutate\_file}), which in turn calls the C routines and falls back on \texttt{delete\_line\_mutants} for string‐deletion mutations. Surviving mutants are evaluated in parallel with \texttt{testthat} and \texttt{furrr} for efficient test execution \cite{wickham2011testthat,Vaughan2020furrr}. Finally, semantic equivalence detection is performed by \texttt{identify\_equivalent\_mutants} using the OpenAI API to filter out equivalent mutants before computing raw and adjusted mutation scores \cite{wickham2011httr,ooms2014jsonlite,openai2023api}.
+
 \end{chapterabstract}
 
-\subsection{Mutator class}
+\section{C++ Implementation}
 
-%put some pseudocode here%
+In this chapter, we detail the core C++ routines that drive the mutation testing engine’s integration with R’s internal API. We focus on two central functions, \texttt{C\_mutate\_file} and \texttt{C\_mutate\_single}, which together enumerate, apply, validate, and collect mutants for an entire R source file or a single expression, respectively. These functions rely on R’s \texttt{SEXP} type, protection stack, and evaluation APIs to safely manipulate R objects in native code \cite{rcore2024}.
+
+\subsection{\texttt{C\_mutate\_file} Function}
+
+The \texttt{C\_mutate\_file} function orchestrates mutation across all expressions in an R source block.  Its high-level pseudocode is:
+
+\begin{verbatim}
+// C_mutate_file(exprs):
+//   1. Validate input is EXPRSXP list with a matching 'srcref' attribute.
+//   2. Determine which expressions lie inside `{ }` blocks.
+//   3. For each expression i:
+//        a. Call C_mutate_single(expr_i, src_ref_i, inside_block[i]) 
+//           → list of per-expression mutants.
+//        b. For each mutant j:
+//             • Build a full-file mutant by replacing expr_i with mutant_j.
+//             • Copy 'mutation_info' from mutant_j into the file mutant.
+//             • Protect the new file mutant on the R protection stack.
+//             • If R_tryEval(file_mutant) succeeds, keep it; otherwise discard.
+//   4. Allocate and return an R list containing all valid, protected mutants.
+\end{verbatim}
+
+Key implementation notes:
+\begin{itemize}
+  \item Uses \texttt{detect\_block\_expressions} to mark expressions inside code blocks.
+  \item Manages protection via \texttt{PROTECT}/\texttt{UNPROTECT} and accumulates valid mutants in a C++ \texttt{std::vector<SEXP>}.
+  \item Leverages \texttt{R\_tryEval} to filter out syntactically or semantically invalid mutants.
+\end{itemize}
+
+\subsection{\texttt{C\_mutate\_single} Function}
+
+The \texttt{C\_mutate\_single} function focuses on a single R expression, gathering mutation points and applying each operator to produce candidate mutants.  The core pseudocode is:
+
+\begin{verbatim}
+// C_mutate_single(expr, src_ref, is_inside_block):
+//   1. If expr is an EXPRSXP of length 0 → error.
+//   2. If expr is EXPRSXP with multiple elements, extract the first.
+//   3. astHandler.gatherOperators(expr, src_ref, is_inside_block)
+//        → vector of (location, operator) pairs.
+//   4. If no operators → return empty list.
+//   5. For each operator index i:
+//        a. (mut_expr, ok) = mutator.applyMutation(expr, operators, i)
+//        b. If ok:
+//             • PROTECT(mut_expr); add to mutants vector.
+//   6. Allocate VECSXP list of size = mutants.size(); protect it.
+//   7. Populate result list with each protected mutant.
+//   8. UNPROTECT all but the result; return the result list.
+\end{verbatim}
+
+Important details:
+\begin{itemize}
+  \item Handles both raw expressions (\texttt{LANGSXP}, \texttt{SYMSXP}, etc.) and expression vectors (\texttt{EXPRSXP}).
+  \item Calls into \texttt{ASTHandler} to locate mutation sites and \texttt{Mutator} to generate concrete mutants.
+  \item Carefully tracks the number of \texttt{PROTECT} calls to avoid garbage–collection issues.
+\end{itemize}
+
 
 \subsection{ASTHandler class}
 
-%put some pseudocode here%
+The \texttt{ASTHandler} class is responsible for scanning an R expression’s abstract syntax tree (AST), identifying all mutation points (operators and deletable sub‐expressions), and recording their source locations.  It uses cached R symbols for efficient comparison and a recursive traversal to collect operator positions and delete‐candidates in a structured \texttt{OperatorPos} vector.
 
-\subsection{mutateR class}
+\begin{verbatim}
+// Cached R symbols for operators and srcref tags
+static struct CachedSyms {
+  SEXP s_lbrace   = Rf_install("{");
+  SEXP s_rbrace   = Rf_install("}");
+  SEXP s_plus     = Rf_install("+");
+  SEXP s_minus    = Rf_install("-");
+  // … other operators: *, /, ==, !=, <, >, <=, >=, &, |, &&, ||
+  SEXP s_srcref   = Rf_install("srcref");
+  SEXP s_mutinfo  = Rf_install("mutation_info");
+} SYM;
+\end{verbatim}
 
-%put some pseudocode here%
+\noindent\textbf{Symbol Caching}: Installing symbols once at startup avoids repeated lookups during traversal, improving performance when processing many expressions \cite{rcore2024}.
+
+\medskip
+\noindent\textbf{Deletable Check}  
+Determines whether an expression can be safely removed (for a “delete” mutation) only when inside a block, excluding the block delimiters themselves:
+
+\begin{verbatim}
+// isDeletable(expr):
+//   if not inside a { } block → return false
+//   if expr is a call to “{” or “}” → return false
+//   otherwise → return true
+bool isDeletable(SEXP expr) {
+  if (!_is_inside_block) return false;
+  if (TYPEOF(expr) == LANGSXP) {
+    SEXP head = CAR(expr);
+    if (head == SYM.s_lbrace || head == SYM.s_rbrace)
+      return false;
+  }
+  return true;
+}
+\end{verbatim}
+
+\medskip
+\noindent\textbf{Operator Gathering Entry Point}  
+Initializes source reference bounds and block context, then kicks off the recursive walk:
+
+\begin{verbatim}
+// gatherOperators(expr, src_ref, inside_block):
+//   validate src_ref is integer[4]
+//   set source location (_start_line, _start_col, _end_line, _end_col)
+//   set _is_inside_block flag
+//   call gatherOperatorsRecursive(expr, path = [], ops = [])
+std::vector<OperatorPos> gatherOperators(
+    SEXP expr, SEXP src_ref, bool inside_block) {
+  // … validate src_ref …
+  _is_inside_block = inside_block;
+  std::vector<OperatorPos> ops;
+  gatherOperatorsRecursive(expr, {}, ops);
+  return ops;
+}
+\end{verbatim}
+
+\medskip
+\noindent\textbf{Recursive Traversal}  
+Walks the AST in depth‐first order.  At each call node, it:
+1. Checks if the function symbol matches a known operator in \texttt{op\_map} and, if so, creates the corresponding \texttt{Operator} instance.  
+2. Adds a \texttt{DeleteOperator} if \texttt{isDeletable(expr)}.  
+3. Recurses on each argument sub‐expression, tracking the path indices for precise mutation placement.
+
+\begin{verbatim}
+// gatherOperatorsRecursive(expr, path, ops):
+//   if expr not a LANGSXP → return
+//   fun = CAR(expr)
+//   if fun in op_map:
+//     op = op_map[fun]()
+//     record OperatorPos(path, op, source bounds, fun)
+//   if isDeletable(expr):
+//     record DeleteOperator at path
+//   for each argument index i and child_expr in CDR(expr):
+//     gatherOperatorsRecursive(child_expr, path + [i], ops)
+void gatherOperatorsRecursive(
+    SEXP expr, std::vector<int> path, std::vector<OperatorPos>& ops) {
+  if (TYPEOF(expr) != LANGSXP) return;
+  SEXP fun = CAR(expr);
+
+  // 1. Operator mutations
+  static const std::map<SEXP, std::function<std::unique_ptr<Operator>()>> op_map = {
+    {SYM.s_plus,   []{ return std::make_unique<PlusOperator>(); }},
+    {SYM.s_minus,  []{ return std::make_unique<MinusOperator>(); }},
+    // … other arithmetic and logical operators …
+  };
+  if (auto it = op_map.find(fun); it != op_map.end()) {
+    ops.push_back({path, it->second(), _start_line, _start_col,
+                   _end_line, _end_col, fun});
+  }
+
+  // 2. Delete mutations
+  if (isDeletable(expr)) {
+    ops.push_back({path, std::make_unique<DeleteOperator>(expr),
+                   _start_line, _start_col, _end_line, _end_col, expr});
+  }
+
+  // 3. Recurse into child expressions
+  int idx = 0;
+  for (SEXP arg = CDR(expr); arg != R_NilValue; arg = CDR(arg), ++idx) {
+    gatherOperatorsRecursive(CAR(arg), 
+                             std::vector<int>(path).push_back(idx), 
+                             ops);
+  }
+}
+\end{verbatim}
+
+This design cleanly separates symbol lookup, context checking, and AST traversal, producing a comprehensive list of mutation candidates that downstream code can transform and validate \cite{rcore2024}.
+
+\subsection{Mutator class}
+
+The \texttt{Mutator} class is responsible for taking a single R expression and a list of identified mutation sites (\texttt{OperatorPos} objects), then producing mutated copies without altering the original code. It cleanly separates two mutation strategies—flipping operators (e.g., “+” to “–”) and deleting sub-expressions—and tags each mutant with human-readable metadata indicating where and how the mutation occurred.
+
+\medskip
+\noindent\textbf{Dispatch Logic}  
+At entry, \texttt{applyMutation} simply checks bounds and delegates based on the operator type:
+
+\begin{verbatim}
+// if out of range → fail
+// if operator is Delete → applyDeleteMutation
+// else → applyFlipMutation
+\end{verbatim}
+
+\medskip
+\noindent\textbf{Flip Mutation}  
+Creates a protected duplicate, navigates to the target node via its path, applies the operator’s \texttt{flip()}, and annotates with a “mutation_info” string:
+
+\begin{verbatim}
+// PROTECT(dup = duplicate(expr))
+// navigate by pos.path → node
+// pos.op->flip(node)
+// attach mkString(info) as “mutation_info”
+\end{verbatim}
+
+\medskip
+\noindent\textbf{Delete Mutation}  
+Duplicates the expression, finds the parent CONS cell of the target, updates its \texttt{CDR} pointer to skip the child, and records deletion details:
+
+\begin{verbatim}
+// PROTECT(dup = duplicate(expr))
+// find parent via path[:-1]
+// SETCDR(prev, CDDR(prev))  // remove node
+// attach mkString(info) as “mutation_info”
+\end{verbatim}
+
+All PROTECT calls are balanced with appropriate UNPROTECTs so that only the final mutated object remains on R’s protection stack, ensuring memory safety when returning to R’s garbage collector.  
+
 
 \subsection{Operators}
+
+MutatoR’s mutation operators are organized into a clear class hierarchy rooted in a common \texttt{Operator} interface. This design ensures that new operator types can be added with minimal boilerplate, while shared logic (e.g.\ symbol management, metadata attachment) lives in base classes. All operators derive from:
+
+\begin{verbatim}
+class Operator {
+  SEXP operator_symbol;
+  virtual void flip(SEXP& node) const = 0;
+  virtual std::string getType() const = 0;
+};
+\end{verbatim}
+
+\noindent From there, operators split into several families:
+
+\subsubsection{Arithmetic and Logical Operators}
+
+These operators inherit from \texttt{ArithmeticOperator} or \texttt{LogicalOperator}, which themselves extend \texttt{Operator}:
+
+\begin{verbatim}
+// Base for +, -, *, /
+class ArithmeticOperator : public Operator { … };
+
+// Swap * → /
+class DivideOperator : public ArithmeticOperator {
+  void flip(SEXP& node) const override {
+    SETCAR(node, Rf_install("*"));
+  }
+};
+
+// Swap / → *
+class MultiplyOperator : public ArithmeticOperator {
+  void flip(SEXP& node) const override {
+    SETCAR(node, Rf_install("/"));
+  }
+};
+\end{verbatim}
+
+Logical operators follow the same pattern (e.g.\ \texttt{AndOperator} flips “&” to “|”, \texttt{LogicalOrOperator} flips “||” to “&&”) \cite{offutt1996practical,jia2011analysis}.
+
+\subsubsection{Unary Operator Mutations}
+
+Unary operators remove or invert single-operand expressions. They subclass a lightweight \texttt{UnaryOperator} base:
+
+\begin{verbatim}
+// Remove negation: !x → x
+class RemoveNegation : public Operator {
+  void flip(SEXP& node) const override {
+    // drop the '!' by replacing the call with its argument
+    node = CAR(CDR(node));
+  }
+};
+\end{verbatim}
+
+\subsubsection{Assignment and Value Mutations}
+
+These operators target assignments and literal values:
+
+\begin{itemize}
+  \item \texttt{AssignConstOperator} replaces any assignment RHS with a fixed constant (e.g.\ 42).
+  \item \texttt{ScalarValueMutator} toggles numeric literals between zero and a sentinel value.
+  \item \texttt{NegateMutator} inverts logical conditions (x → !x, !x → x).
+\end{itemize}
+
+\begin{verbatim}
+// Replace RHS of “a = b” with 42
+class AssignConstOperator : public Operator {
+  void flip(SEXP& node) const override {
+    SEXP rhs = Rf_ScalarReal(42);
+    SETCAR(CDR(node), rhs);
+  }
+};
+\end{verbatim}
+
+\subsubsection{Delete Operator}
+
+Beyond flips, the \texttt{DeleteOperator} removes entire sub-expressions when they occur inside a block. It does not subclass a more specific family, but directly extends \texttt{Operator}:
+
+\begin{verbatim}
+// Delete a node by rewiring its parent CDR pointer
+class DeleteOperator : public Operator {
+  void flip(SEXP& node) const override {
+    // actual deletion logic happens in Mutator::applyDeleteMutation
+  }
+};
+\end{verbatim}
+
+\subsubsection{Extensibility}
+
+Adding a new operator involves:
+
+\begin{enumerate}
+  \item Creating a subclass of \texttt{Operator} (or an existing family) with a constructor installing the target symbol.
+  \item Implementing \texttt{flip(SEXP\&)} to perform the AST transformation.
+  \item Registering the operator in \texttt{ASTHandler}’s \texttt{op_map} to enable its detection.
+\end{enumerate}
+
+This modular hierarchy balances code reuse with the flexibility to support any mutation pattern required for thorough test‐suite evaluation.
+
+\section{R implementation}
+
+In addition to the low‐level C++ routines, the mutation testing tool provides a high‐level R interface that orchestrates mutant generation, test execution, and equivalence analysis entirely within R.  This section describes the four main R functions that drive the workflow: \texttt{mutate\_package}, \texttt{mutate\_file}, \texttt{identify\_equivalent\_mutants}, and \texttt{delete\_line\_mutants}.
+
+\subsection{Mutate Package Function}
+
+The \texttt{mutate\_package} function is the user’s entry point for mutating an entire R package.  It performs these steps:
+
+\begin{enumerate}
+  \item Locate all R source files under \texttt{pkg\_dir/R/}.  
+  \item For each source file, call \texttt{mutate\_file()} to produce a list of mutants (AST‐based and line‐deletion).  
+  \item For each mutant, copy the package to a temporary directory, replace the original file with the mutant, and record the mutation path and metadata.  
+  \item Run \texttt{testthat} tests in parallel across mutants using \texttt{furrr} to determine which mutants survive \cite{wickham2011testthat,Vaughan2020furrr}.  
+  \item Optionally, invoke \texttt{identify\_equivalent\_mutants()} on the survivors.  
+  \item Summarize total, killed, survived, and (if requested) equivalent mutants, computing both raw and adjusted mutation scores.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Key snippet:}
+\begin{verbatim}
+mutate_package <- function(pkg_dir, cores = parallel::detectCores(), ...) {
+  r_files <- list.files(file.path(pkg_dir, "R"), "\\.R$", full.names=TRUE)
+  mutants <- map(r_files, ~ mutate_file(.x, out_dir = tmp))
+  # copy package, replace file, run tests in parallel
+  results <- future_map(mutants, run_tests, .progress=TRUE)
+  # collate and summarize
+  ...
+}
+\end{verbatim}
+
+\subsection{Mutate File Function}
+
+The \texttt{mutate\_file} function handles a single R source file.  Its workflow:
+
+\begin{enumerate}
+  \item Ensure output directory exists and enable \texttt{keep.source=TRUE} so that \texttt{srcref} attributes are preserved.  
+  \item Parse the file via \texttt{parse(..., keep.source=TRUE)} and attach default \texttt{srcref} if missing.  
+  \item Call the C routine \texttt{.Call("C\_mutate\_file", parsed)} to generate AST‐based mutants.  
+  \item Deparse each mutant expression back to text, write to a new file under \texttt{out\_dir}, and collect its path and \texttt{mutation\_info} attribute.  
+  \item Append up to \texttt{max\_del} string‐deletion mutants via \texttt{delete\_line\_mutants()} as a fallback.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Key snippet:}
+\begin{verbatim}
+parsed <- parse(src_file, keep.source=TRUE)
+raw <- .Call("C_mutate_file", parsed)
+for (m in raw) {
+  code <- paste(deparse(m), collapse="\n")
+  writeLines(code, out_file)
+  results[[i]] <- list(path=out_file, info=attr(m,"mutation_info"))
+}
+# string‐deletion fallback
+results <- c(results,
+             delete_line_mutants(src_file, out_dir, max_del=5))
+\end{verbatim}
+
+\subsection{Identify Equivalent Mutants Function}
+
+To detect equivalent mutants—those that survive tests yet behave identically—the \texttt{identify\_equivalent\_mutants} function leverages the OpenAI API:
+
+\begin{enumerate}
+  \item Load API credentials via \texttt{get\_openai\_config()} or environment variables.  
+  \item Read the original source file into a single string.  
+  \item Group surviving mutants by file, extracting their IDs and \texttt{mutation\_info}.  
+  \item Construct a formatted prompt with the original code and each mutant’s details using \texttt{create\_equivalent\_mutant\_prompt()}.  
+  \item Send the prompt to OpenAI via \texttt{httr::POST()} and \texttt{jsonlite::toJSON()} \cite{wickham2011httr,ooms2014jsonlite,openai2023api}.  
+  \item Parse the response to set an \texttt{equivalent} flag for each mutant based on simple pattern matching.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Key snippet:}
+\begin{verbatim}
+prompt <- create_equivalent_mutant_prompt(orig_code, mutant_details)
+resp   <- call_openai_api(prompt, api_config)
+if (!is.null(resp$choices)) {
+  analysis <- resp$choices[[1]]$message$content
+  survived_mutants[[mid]]$equivalent <- grepl("equivalent", analysis, ignore.case=TRUE)
+}
+\end{verbatim}
+
+\subsection{Delete Line Mutants Function}
+
+As a complementary strategy, \texttt{delete\_line\_mutants} generates “string‐deletion” mutants by removing individual non‐empty lines:
+
+\begin{enumerate}
+  \item Read all lines from \texttt{src\_file} and identify non‐empty indices.  
+  \item For up to \texttt{max\_del} iterations, randomly pick a non‐empty line, remove it, and write the result to a new file in \texttt{out\_dir}.  
+  \item Return a list of mutant descriptors with file paths and a deletion message.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Key snippet:}
+\begin{verbatim}
+lines     <- readLines(src_file)
+non_empty <- which(nzchar(lines))
+idx       <- sample(non_empty, 1)
+writeLines(lines[-idx], out_file)
+mutants[[i]] <- list(path=out_file,
+                     info=sprintf("deleted line %d", idx))
+\end{verbatim}
+
+Together, these R functions enable an end‐to‐end mutation testing workflow: from AST‐driven and line‐deletion mutant generation, through parallel test execution and equivalence analysis, to final mutation score reporting.
