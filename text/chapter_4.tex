@@ -268,26 +268,6 @@ class RemoveNegation : public Operator {
 };
 \end{verbatim}
 
-\subsubsection{Assignment and Value Mutations}
-
-These operators target assignments and literal values:
-
-\begin{itemize}
-  \item \texttt{AssignConstOperator} replaces any assignment RHS with a fixed constant (e.g.\ 42).
-  \item \texttt{ScalarValueMutator} toggles numeric literals between zero and a sentinel value.
-  \item \texttt{NegateMutator} inverts logical conditions (x → !x, !x → x).
-\end{itemize}
-
-\begin{verbatim}
-// Replace RHS of “a = b” with 42
-class AssignConstOperator : public Operator {
-  void flip(SEXP& node) const override {
-    SEXP rhs = Rf_ScalarReal(42);
-    SETCAR(CDR(node), rhs);
-  }
-};
-\end{verbatim}
-
 \subsubsection{Delete Operator}
 
 Beyond flips, the \texttt{DeleteOperator} removes entire sub-expressions when they occur inside a block. It does not subclass a more specific family, but directly extends \texttt{Operator}:
