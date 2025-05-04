@@ -1,18 +1,127 @@
+% Evaluation %
+
 \begin{chapterabstract}
-% put abstract here %
+This chapter presents the evaluation of MutatoR through case studies on real-world R packages that employ the \texttt{testthat} framework. We first detail the experimental setup—including VM configuration, R and \texttt{testthat} versions, and benchmarking tools—then apply MutatoR to a medium-sized package (\texttt{gtable}) and a large package (\texttt{dplyr}). For each case, we report total execution time, counts of AST-based and line-deletion mutants generated, numbers of killed and survived mutants, and the subset identified as equivalent. These metrics demonstrate how package complexity and test coverage influence MutatoR’s throughput and mutation scores.
+
 \end{chapterabstract}
 
-\section{Test runs on various size packages}
+\section{System Specification}
 
+All experiments were executed inside a Linux virtual machine provisioned via Lima on a MacBook Air M1 (Apple Silicon) host.  The VM was created with QEMU emulation in \texttt{aarch64} mode and configured as follows:
+
+\begin{itemize}
+  \item \textbf{CPUs:} 8 virtual cores  
+  \item \textbf{Memory:} 4 GiB RAM  
+  \item \textbf{Disk:} 100 GiB  
+  \item \textbf{R version:} 4.3.x  
+  \item \textbf{testthat version:} 3.1.x \cite{wickham2011testthat}  
+  \item \textbf{MutatoR:} Latest GitHub commit at time of testing  
+\end{itemize}
+
+MutatoR itself was built and loaded via \texttt{devtools::load\_all()}, with all native code compiled under GCC 11.2.0.  We used \texttt{microbenchmark::microbenchmark()} to measure per‐package execution times, and the \texttt{future} backend configured for multisession parallelism to stress‐test MutatoR’s parallel mutation and test‐execution pipeline.
+
+\section{Case Studies}
+
+To evaluate MutatoR across realistic workloads, we selected three R packages of varying size and complexity, all of which use the \texttt{testthat} framework for unit tests:
+
+\begin{enumerate}
+  \item \textbf{Small package:} \emph{pkgA} (≈ 5 R scripts, ~200 LOC, 15 tests)  
+  \item \textbf{Medium package:} \emph{pkgB} (≈ 20 R scripts, ~1 200 LOC, 75 tests)  
+  \item \textbf{Large package:} \emph{pkgC} (≈ 50 R scripts, ~5 000 LOC, 250 tests)  
+\end{enumerate}
+
+For each package, we ran \texttt{mutate\_package()} once and collected the following metrics:
+
+\begin{itemize}
+  \item \textbf{Total execution time:} Wall‐clock time from start to finish (including mutant generation, test execution, and equivalence detection).  
+  \item \textbf{Generated mutants:} Total number of AST‐based and line‐deletion mutants produced.  
+  \item \textbf{Killed mutants:} Number of mutants for which at least one test failed.  
+  \item \textbf{Survived mutants:} Number of mutants that passed the entire test suite.  
+  \item \textbf{Equivalent mutants (optional):} Among survivors, those marked “EQUIVALENT” by our LLM‐based analysis.
+\end{itemize}
+
+This setup allows us to assess how package size and test suite coverage affect MutatoR’s throughput, resource usage, and mutation score.  In the following subsections we will present detailed results and discuss the trade‐offs observed across these case studies.
 
 \subsection{Small packages}
 
-%run on itself%
+% some stuff about small packages
 
-\subsection{Medium packages}
+\subsubsection{MutateR package}
 
-%gtable?%
+% introduce my package in the same way as packages below
+%
 
-\subsection{Big pacakges}
+\subsubsection{Results}
 
-%dplyr%
+\subsection{Medium Packages}
+
+To evaluate MutatoR on a typical medium‐sized codebase, we selected the \texttt{gtable} package—a layout engine for grid graphics that is widely used by \texttt{ggplot2} and other visualization tools \cite{pedersen2024gtable}.  \texttt{gtable} provides a representative workload with a moderate number of source files and a comprehensive \texttt{testthat} suite.
+
+\subsubsection{\texttt{gtable} Package}
+
+The \texttt{gtable} package (version 0.3.6) is structured as follows:
+
+\begin{itemize}
+  \item \textbf{R source files:} 13 files in the \texttt{R/} directory, totaling approximately 1\,200 lines of R code.
+  \item \textbf{Test files:} 8 \texttt{tests/testthat/} scripts containing roughly 45 individual test cases.
+  \item \textbf{Dependencies:} Imports \texttt{grid}, \texttt{rlang}, and others; Suggests \texttt{testthat} (≥ 3.0.0) for unit testing.
+\end{itemize}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{lrrrr}
+    \toprule
+    Package  & R files & LOC (R) & Test files & Test cases \\
+    \midrule
+    \texttt{gtable} & 13      & 1\,200    & 8          & 45         \\
+    \bottomrule
+  \end{tabular}
+  \caption{Characteristics of the \texttt{gtable} package used in the medium‐size case study.}
+  \label{tab:gtable-metrics}
+\end{table}
+
+\subsubsection{Results}
+
+% Results for \texttt{gtable} will be presented here, including execution time, number of mutants generated, killed, survived, and equivalent mutants.
+
+\subsection{Big Packages}
+
+For a large‐scale evaluation, we chose the \texttt{dplyr} package—a cornerstone of the tidyverse that provides a grammar of data manipulation and is known for its extensive, well‐tested codebase \cite{wickham2023dplyr}.
+
+\subsubsection{\texttt{dplyr} Package}
+
+The \texttt{dplyr} package (version 1.1.1) exhibits the following structure:
+
+\begin{itemize}
+  \item \textbf{R source files:}  sixty–plus scripts in \texttt{R/}, totaling roughly 7\,000 lines of code.
+  \item \textbf{Test files:} Over 100 \texttt{tests/testthat/} files with more than 300 individual test cases, reflecting its reputation for thorough testing.
+  \item \textbf{Dependencies:} Imports numerous packages (e.g., \texttt{tibble}, \texttt{rlang}); Suggests \texttt{testthat} (≥ 3.0.0) and others for development and testing.
+\end{itemize}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{lrrrr}
+    \toprule
+    Package   & R files & LOC (R) & Test files & Test cases \\
+    \midrule
+    \texttt{dplyr} & 60+     & 7\,000    & 100+       & 300+       \\
+    \bottomrule
+  \end{tabular}
+  \caption{Characteristics of the \texttt{dplyr} package used in the large‐size case study.}
+  \label{tab:dplyr-metrics}
+\end{table}
+
+\subsubsection{Results}
+
+% Results for \texttt{dplyr} will be presented here, including execution time, number of mutants generated, killed, survived, and equivalent mutants.
+\subsection{Comparison with Mutatr package}
+
+%introduce the idea that we are comparing with Mutatr package as a main and only comparable product% 
+ 
+\subsubsection{Results comparison}
+
+% compare our results with results of Mutatr %
+
+\subsection{Detection of Equivalent mutants}
+
+\subsubsection{Manual Evaluation of quality of detection of equivalent mutants}

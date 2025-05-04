@@ -1,15 +1,82 @@
+% Detection of equivalent mutants using LLMs %
+
 \begin{chapterabstract}
-% put abstract here %
+This chapter explores the use of large language models (LLMs) to detect equivalent mutants—syntactic variations of R code that do not alter program behavior. We review the evolution and capabilities of LLMs, introduce the specific OpenAI models (o4-mini, gpt-4.1, o1) leveraged for our analysis, and detail our prompt engineering strategy that constrains model responses to “EQUIVALENT,” “NOT EQUIVALENT,” or “DONT KNOW.” By combining precise context presentation with conservative decision guidelines, our approach balances accuracy and uncertainty handling in automated equivalence classification \cite{brown2020language,vaswani2017attention,openai2023api,liu2021pre,wei2022chain}.
 \end{chapterabstract}
 
 \section{Background}
 
-\subsection{LLMs used}
+In recent years, large language models (LLMs) have demonstrated remarkable capabilities in understanding and generating natural language, as well as performing complex reasoning tasks over code. Their ability to capture semantic nuances and generalize across diverse contexts makes them promising candidates for aiding in the detection of equivalent mutants—mutations that do not change a program’s behavior under any input. In this section, we first overview the evolution and capabilities of LLMs, then introduce the specific OpenAI models we utilize, and finally discuss the principles of prompt engineering that enable effective interaction with these models.
 
-\section{Equivalent Mutants}
+\subsection{Large Language Models}
 
-\subsection{Detection techniques}
+Large language models are neural networks trained on massive text corpora to predict and generate human-like language \cite{brown2020language}. Starting with the Transformer architecture \cite{vaswani2017attention}, successive models such as GPT-2 and GPT-3 scaled up parameters and training data, unlocking abilities in code generation, summarization, and even zero-shot reasoning \cite{brown2020language,radford2019language}. More recently, GPT-4 and similar systems have further improved context length and multimodal understanding, enabling sophisticated code analysis and transformation tasks. Their strength lies in in-context learning: by conditioning on a few examples or instructions, LLMs can adapt to new tasks without explicit fine-tuning \cite{openai2023api}. These advances motivate exploring LLMs as automated or semi-automated tools for identifying semantic equivalences in mutated code.
 
-\subsection{Prompt creation}
+\subsection{Utilized Models}
 
-%cite the Chinese paper%
+For our experiments, we leverage three OpenAI API models:
+
+\begin{itemize}
+  \item \textbf{o4-mini}: A lighter, faster variant of GPT-4 optimized for code and reasoning on constrained hardware. It offers lower latency at the cost of somewhat reduced depth of inference.
+  \item \textbf{gpt-4.1}: The flagship GPT-4.1 model, providing the strongest reasoning and code-understanding capabilities with extended context windows, suitable for analyzing complex mutation scenarios.
+  \item \textbf{o1}: A lightweight, cost-effective model that balances performance and expense, useful for bulk screening of mutants before invoking larger models for verification.
+\end{itemize}
+
+Each model exhibits different trade-offs in terms of speed, cost, and accuracy. For example, o4-mini allows rapid iteration over many mutants, while gpt-4.1 yields the most reliable equivalence judgments on subtle semantic variations \cite{openai2023api}. The o1 model serves as a baseline, demonstrating how even smaller LLMs can detect simple equivalent mutations.
+
+\subsection{Prompt Engineering}
+
+Prompt engineering refers to the practice of designing effective instructions and examples to elicit desired behaviors from LLMs \cite{liu2021pre}. Well-crafted prompts can guide a model to focus on relevant code fragments, apply logical reasoning, and format outputs consistently. Techniques include:
+
+\begin{itemize}
+  \item \textbf{Zero-shot prompts}: Providing only task instructions, relying on the model’s pre-training for generalization.
+  \item \textbf{Few-shot examples}: Including several annotated input–output pairs to illustrate the desired analysis process.
+  \item \textbf{Chain-of-thought prompting}: Encouraging the model to generate intermediate reasoning steps, improving accuracy on complex queries \cite{wei2022chain}.
+  \item \textbf{Instruction tuning}: Specifying precise formatting constraints (e.g., “Respond with ‘EQUIVALENT’ or ‘NOT EQUIVALENT’ only”), reducing ambiguity in the model’s responses.
+\end{itemize}
+
+By combining these strategies, we construct prompts that systematically present the original code and mutant details, ask targeted equivalence questions, and parse the model’s judgments reliably. This foundation enables robust automated detection of equivalent mutants in R programs.  
+
+\section{Prompt Design for Equivalent Mutant Detection}
+
+To reliably leverage LLMs for identifying equivalent mutants, we crafted a structured prompt that (1) presents the necessary context, (2) defines a clear task, and (3) constrains the model’s output to three well–defined categories.  This section describes our prompt construction process and justifies the choice of response options.
+
+\subsection{Prompt Construction}
+
+Our prompt is generated by the \texttt{create\_equivalent\_mutant\_prompt} function, which concatenates the original source code and a list of mutant descriptions into a single instruction.  Key features include:
+\begin{itemize}
+  \item \textbf{Context Provision}: The full original code block is enclosed in triple backticks, ensuring the model has complete behavioral semantics to compare against each mutant \cite{openai2023api}.
+  \item \textbf{Explicit Task Definition}: We begin with “Determine if the following mutants are equivalent to the original code…”, immediately focusing the model on behavioral equivalence under all inputs \cite{liu2021pre}.
+  \item \textbf{Structured Mutant Details}: Each mutant is listed as
+  \begin{verbatim}
+Mutant ID: <id>
+Mutation: <mutation_info>
+  \end{verbatim}
+  which helps the model associate IDs with mutation descriptions in its analysis.
+  \item \textbf{Instruction on Conservatism}: We instruct the model to “Only answer with certainty if you are sure. If there's any doubt, use 'DONT KNOW'.”  This guards against overconfidence and reduces false positives in equivalence judgments \cite{wei2022chain}.
+  \item \textbf{Output Constraints}: By enumerating the three allowable responses and requiring exact spelling (e.g.\ ‘EQUIVALENT’), we simplify downstream parsing and ensure consistency.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Example snippet:}
+\begin{verbatim}
+prompt <- paste0(
+  "Determine if the following mutants are equivalent ...\n\n",
+  "Be conservative in your assessment. For each mutant, respond with:\n",
+  "- 'EQUIVALENT'\n- 'NOT EQUIVALENT'\n- 'DONT KNOW'\n\n",
+  "Original code:\n```\n", original_code, "\n```\n\n",
+  "Survived mutants:\n", mutant_info
+)
+\end{verbatim}
+
+\subsection{Rationale for Three Response Categories}
+
+We opted for a three–tier response format—\texttt{EQUIVALENT}, \texttt{NOT EQUIVALENT}, and \texttt{DONT KNOW}—for the following reasons:
+
+\begin{itemize}
+  \item \textbf{Clarity of Decision Boundaries}: By separating “equivalent” and “not equivalent,” we force the model to make a binary behavioral judgment only when sufficiently confident.
+  \item \textbf{Uncertainty Handling}: The \texttt{DONT KNOW} option acknowledges that LLMs can be overconfident or lack the necessary context to decide, allowing safe default handling for ambiguous cases \cite{liu2021pre}.
+  \item \textbf{Ease of Post-Processing}: A closed set of three responses simplifies parsing and downstream aggregation of counts—equivalent, not equivalent, and uncertain—enabling precise mutation score adjustment.
+\end{itemize}
+
+This design reflects best practices in prompt engineering by providing clear instructions, limiting output variability, and explicitly addressing model uncertainty, thereby improving both accuracy and reliability of equivalent mutant detection.
