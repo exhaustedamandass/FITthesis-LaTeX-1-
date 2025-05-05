@@ -11,8 +11,8 @@ All experiments were executed inside a Linux virtual machine provisioned via Lim
 
 \begin{itemize}
   \item \textbf{CPUs:} 8 virtual cores  
-  \item \textbf{Memory:} 4 GiB RAM  
-  \item \textbf{Disk:} 100 GiB  
+  \item \textbf{Memory:} 16 GiB RAM  
+  \item \textbf{Disk:} 200 GiB  
   \item \textbf{R version:} 4.3.x  
   \item \textbf{testthat version:} 3.1.x \cite{wickham2011testthat}  
   \item \textbf{MutatoR:} Latest GitHub commit at time of testing  
@@ -42,14 +42,32 @@ For each package, we ran \texttt{mutate\_package()} once and collected the follo
 
 This setup allows us to assess how package size and test suite coverage affect MutatoR’s throughput, resource usage, and mutation score.  In the following subsections we will present detailed results and discuss the trade‐offs observed across these case studies.
 
-\subsection{Small packages}
+\subsection{Small Packages}
 
-% some stuff about small packages
+Small packages—typically under 300 lines of R code—provide a lightweight workload that tests MutatoR’s overhead and baseline performance. Their concise codebases and modest test suites allow us to observe how quickly mutants can be generated and assessed when the computational footprint is minimal.
 
-\subsubsection{MutateR package}
+\subsubsection{\texttt{oRaklE} Package}
 
-% introduce my package in the same way as packages below
-%
+The \texttt{oRaklE} package is a utility for random key–lock emulation in R. Its structure is:
+
+\begin{itemize}
+  \item \textbf{R source files:} 19 files in \texttt{R/}.  
+  \item \textbf{Test files:} 1 \texttt{tests/testthat/} script with 1 test case.  
+  \item \textbf{Dependencies:} Uses only base R and \texttt{testthat} (≥ 3.0.0) for testing.
+\end{itemize}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{lrrrr}
+    \toprule
+    Package        & R files & LOC (R) & Test files & Test cases \\
+    \midrule
+    \texttt{oRaklE} & 19      & 250       & 1          & 1          \\
+    \bottomrule
+  \end{tabular}
+  \caption{Characteristics of the \texttt{oRaklE} package used in the small‐size case study.}
+  \label{tab:orakle-metrics}
+\end{table}
 
 \subsubsection{Results}
 
@@ -82,7 +100,50 @@ The \texttt{gtable} package (version 0.3.6) is structured as follows:
 
 \subsubsection{Results}
 
-% Results for \texttt{gtable} will be presented here, including execution time, number of mutants generated, killed, survived, and equivalent mutants.
+The mutation run on the \texttt{gtable} package completed in approximately 5.72 s of sampled execution time (sampling interval = 0.02 s).  In total, MutatoR generated 243 mutants, of which 133 were killed by the existing \texttt{testthat} suite and 110 survived, yielding a raw mutation score of 54.73 \%.  A breakdown of key outcome metrics is shown in Table~\ref{tab:gtable-summary}.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{lr}
+    \toprule
+    Metric               & Value    \\
+    \midrule
+    Total execution time (sampled) & 5.72 s   \\
+    Total mutants        & 243      \\
+    Killed               & 132      \\
+    Survived             & 111      \\
+    Mutation score       & 54.32 \% \\
+    \bottomrule
+  \end{tabular}
+  \caption{Mutation testing summary for \texttt{gtable}.}
+  \label{tab:gtable-summary}
+\end{table}
+
+To understand where time was spent, we sampled profiling data during the mutation run.  Table~\ref{tab:gtable-profile} lists the top ten R functions by total execution time.  The majority of wall‐clock time is consumed by the parallel orchestration infrastructure (e.g.\ \texttt{mutate\_package}, \texttt{furrr\_map\_template}, \texttt{poll\_progress}) and by resolving futures for each mutant.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{lrr}
+    \toprule
+    Function                   & Total time (s) & Self time (s) \\
+    \midrule
+    mutate\_package             & 5.72           & 0.00          \\
+    furrr\_map\_template         & 4.84           & 0.00          \\
+    poll\_progress              & 3.76           & 0.00          \\
+    any\_running                & 3.62           & 0.02          \\
+    resolved.list               & 3.60           & 0.06          \\
+    resolved.ClusterFuture      & 3.54           & 0.24          \\
+    connectionId                & 1.96           & 0.08          \\
+    capture.output              & 1.56           & 0.06          \\
+    serialize                   & 1.06           & 1.06          \\
+    file.copy                   & 0.46           & 0.42          \\
+    \bottomrule
+  \end{tabular}
+  \caption{Top ten functions by total and self time in the \texttt{gtable} mutation run.}
+  \label{tab:gtable-profile}
+\end{table}
+
+These results indicate that while mutant generation and test execution produce a significant number of AST‐based and string‐deletion mutants, the dominant cost is parallel task coordination and future resolution rather than the low‐level R operations themselves.
 
 \subsection{Big Packages}
 
@@ -122,6 +183,138 @@ The \texttt{dplyr} package (version 1.1.1) exhibits the following structure:
 
 % compare our results with results of Mutatr %
 
-\subsection{Detection of Equivalent mutants}
+\section{Detection of Equivalent Mutants}
+
+Building on the mutation runs presented above, we now evaluate the ability of large language models to identify equivalent mutants—those which survive testing yet do not change program behavior.  We focus on the \texttt{gtable} package, whose moderate size makes it both tractable for multiple API calls and representative of real‐world R libraries.
+
+\subsection{Study Design}
+
+To assess model performance and cost trade‐offs, we execute our equivalence detection pipeline on the same set of \texttt{gtable} mutants using three OpenAI models: \texttt{o4-mini}, \texttt{gpt-4.1}, and \texttt{o1}.  We then compare the quantitative results (counts of “EQUIVALENT”, “NOT EQUIVALENT”, and “DONT KNOW” judgments), analyze the quality of each model’s reasoning, and perform a targeted manual validation on a sample of cases from each model.  The study is structured as follows:
+
+\subsubsection{Objectives}
+\begin{itemize}
+  \item Measure each model’s tendency to classify surviving mutants as equivalent vs.\ non‐equivalent vs.\ uncertain.
+  \item Evaluate the clarity and correctness of the rationale provided in each model’s response.
+  \item Compare cost (API calls) and latency implications of using lighter vs.\ heavier models.
+  \item Manually verify a random subset of judgments to estimate precision and recall for equivalence detection.
+\end{itemize}
+
+\subsubsection{Package Under Test}
+We reuse the \texttt{gtable} package (v0.3.6) and its 104 surviving mutants from Section~6.2.2.2.  It's 13 R scripts and 45 tests provide a controlled yet realistic workload, balancing the number of API requests against execution cost.
+5
+\subsubsection{Models and Configuration}
+\begin{itemize}
+  \item \textbf{o4-mini:} Low‐latency GPT‐4 variant; used for rapid, large‐scale screening.
+  \item \textbf{gpt-4.1:} Full GPT‐4.1 model; expected to yield the most accurate equivalence judgments.
+  \item \textbf{o1:} Lightweight GPT‐3.5–style model; serves as a cost‐effective baseline.
+\end{itemize}
+All calls use temperature = 0.1 and the same system prompt (“You are an expert in program analysis…”), ensuring comparability.
+
+\subsubsection{Experimental Procedure}
+\begin{enumerate}
+  \item \textbf{Mutant Generation:} Use \texttt{mutate\_file} to produce the full set of surviving mutants for \texttt{gtable}.  
+  \item \textbf{Prompt Construction:} For each model, invoke \texttt{identify\_equivalent\_mutants} to build and send prompts for all mutants in a single API session per file.  
+  \item \textbf{Response Parsing:} Extract each mutant’s judgment (“EQUIVALENT”, “NOT EQUIVALENT”, or “DONT KNOW”) and record counts.  
+  \item \textbf{Cost Logging:} Track total API tokens consumed and wall‐clock time per model.
+\end{enumerate}
+
+\subsubsection{Manual Validation}
+From each model’s classified mutants, we randomly sample 10 mutants flagged as \texttt{EQUIVALENT} and 10 flagged as \texttt{NOT EQUIVALENT}.  Domain experts manually inspect the original and mutated code to confirm or refute the model’s judgment, enabling computation of precision, recall, and error patterns for each LLM.
+
+This design enables a comprehensive comparison of model accuracy, reasoning quality, cost, and latency in the context of equivalent mutant detection on a real R
 
 \subsubsection{Manual Evaluation of quality of detection of equivalent mutants}
+
+
+
+\subsection{chatGPT 4.0-mini model results}
+
+\subsection{chaGPT 4.1 model results}
+
+\subsection{chaGPT 4.1 model results}
+
+\subsubsection{Overall results}
+
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{lr}
+    \toprule
+    \textbf{Metric}            & \textbf{Count / Score}      \\
+    \midrule
+    Total mutants              & 243                          \\
+    Killed                     & 132                          \\
+    Survived                   & 111                          \\
+    Equivalent                 &   0                          \\
+    Not Equivalent             &  56                          \\
+    Uncertain                  &  55                          \\
+    Mutation Score             & 54.32\%                      \\
+    Adjusted Score             & 54.32\% (excluding equivalents) \\
+    \bottomrule
+  \end{tabular}
+  \caption{Summary of GPT-4.1 (\texttt{gpt-4.1}) equivalence judgments on the \texttt{gtable} mutants}
+  \label{tab:gpt41-overall}
+\end{table}
+
+GPT-4.1 processed all 243 mutants, correctly killing 132 and classifying 111 as survivors.  Of the survivors, it flagged 56 as “\texttt{NOT EQUIVALENT}” and expressed uncertainty on 55 cases, never declaring any mutant as equivalent.  This yields a raw mutation score of 54.32\%, which remains the same when adjusted (no equivalents to exclude).  Compared with lighter models, GPT-4.1 shows a cautious stance (near 50/50 split between non-equivalent and uncertain), suggesting high precision at the expense of recall.
+
+\subsubsection{Manual evaluation of response}
+
+Below we inspect one representative surviving mutant (ID \texttt{filter.R\_filter.R\_003.R}), for which GPT-4.1 answered \texttt{NOT EQUIVALENT}.  Some of the original source code was trimmed for brevity.
+
+\begin{lstlisting}[language=R, caption={Original \texttt{gtable\_filter} (trimmed)}]
+gtable_filter <- function(x, pattern, fixed = FALSE, trim = TRUE, invert = FALSE) {
+  matches <- grepl(pattern, .subset2(x$layout, "name"), fixed = fixed)
+  if (invert) matches <- !matches
+  x$layout <- x$layout[matches, , drop = FALSE]
+  x$grobs   <- x$grobs[matches]
+
+  if (trim) x <- gtable_trim(x)   # ← line 42, deleted by mutant
+
+  x
+}
+\end{lstlisting}
+
+\paragraph{Mutant under inspection}
+\begin{itemize}
+  \item \textbf{Mutant ID:} \texttt{filter.R\_filter.R\_003.R}
+  \item \textbf{Mutation:} deletion of line 42 (`if (trim) x <- gtable_trim(x)`)
+\end{itemize}
+
+\paragraph{Answer received from GPT-4.1}
+\begin{quote}
+**Assessment of Mutant:**
+
+- **Mutant ID:** filter.R_filter.R_003.R  
+- **Mutation:** deleted line 42
+
+**Line 42 in the original code:**
+\begin{verbatim}
+if (trim) x <- gtable_trim(x)
+\end{verbatim}
+
+**Effect of the mutation:**  
+The mutant removes the call to `gtable_trim(x)` when `trim` is `TRUE`. This means the mutant will never trim empty rows/columns, regardless of the value of the `trim` argument.
+
+**Behavioral difference:**  
+For any input where filtering leaves empty rows or columns and `trim = TRUE`, the original will remove them, but the mutant will not.
+
+**Conclusion:**  
+**NOT EQUIVALENT**
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Identification:}  
+    GPT-4.1 correctly located the mutated line inside `gtable_filter` and quoted it verbatim, demonstrating precise pinpointing of the defect.
+  
+  \item \textbf{Reasoning Quality:}  
+    The model’s analysis clearly explains that removing the `gtable_trim` call alters behavior whenever empty rows/columns would otherwise be removed.  This logical chain is sound and complete.
+
+  \item \textbf{Validation and Test Coverage:}  
+    Although GPT-4.1 correctly concludes “\texttt{NOT EQUIVALENT},” the existing test suite for \texttt{gtable} does not include a case where all grobs in a row/column are filtered out with `trim = TRUE`.  Hence, this mutant remains “survived” under current tests, making it a valid mutant for further testing or inclusion of a new test case.
+\end{enumerate}
+
+Overall, the manual check confirms GPT-4.1’s pinpointing and reasoning are both correct and useful, while also highlighting a gap in test coverage that the tool has exposed.
+
+
+\subsection{chatGPT o1 model results}
+
