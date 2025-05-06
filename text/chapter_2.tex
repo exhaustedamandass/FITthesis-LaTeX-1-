@@ -44,12 +44,28 @@ The industrial importance of mutation testing has been demonstrated notably by P
     \label{fig:MutationAnalysis}
 \end{figure}
 
-\begin{figure}[!htbp]
-    \centering
-    \includegraphics[width=\linewidth]{images/MutationOperation.png}
-    \caption{An Example of Mutation Operation ~\cite{offutt2010mutation}.}
-    \label{fig:MutationOperation}
-\end{figure}
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{p{0.45\linewidth} p{0.45\linewidth}}
+    \hline\hline
+    \textbf{Program \(p\)} & \textbf{Mutant \(p'\)} \\
+    \hline
+    \begin{tabular}[t]{@{}l@{}}
+      \texttt{if (a > 0 \&\& b > 0)} \\
+      \texttt{\ \ \ \ return 1;}
+    \end{tabular}
+    &
+    \begin{tabular}[t]{@{}l@{}}
+      \texttt{if (a > 0 || b > 0)} \\
+      \texttt{\ \ \ \ return 1;}
+    \end{tabular} \\
+    \hline
+  \end{tabular}
+  \caption{An example of a logical operator mutation, changing \texttt{\&\&} to \texttt{||}. \cite{offutt2010mutation}}
+  \label{tab:MutationOperation}
+\end{table}
+
+
 
 \subsection{Mutatr}
 

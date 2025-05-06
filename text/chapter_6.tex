@@ -46,7 +46,7 @@ For each package, we ran \texttt{mutate\_package()} once and collected the follo
   \item \textbf{Equivalent mutants (optional):} Among survivors, those marked “EQUIVALENT” by our LLM‐based analysis.
 \end{itemize}
 
-This setup allows us to assess how package size and test suite coverage affect MutatoR’s throughput, resource usage, and mutation score.  In the following subsections we will present detailed results and discuss the trade‐offs observed across these case studies.
+This setup allows us to assess how package size and test suite coverage affect MutatoR’s throughput, resource usage, and mutation score.  In the following subsections, we will present detailed results and discuss the trade‐offs observed across these case studies.
 
 \subsection{Small Packages}
 
@@ -264,7 +264,17 @@ GPT-4.1 processed all 243 mutants, correctly killing 132 and classifying 111 as 
 
 Below we inspect one representative surviving mutant (ID \texttt{filter.R\_filter.R\_003.R}), for which GPT-4.1 answered \texttt{NOT EQUIVALENT}.  Some of the original source code was trimmed for brevity.
 
-\begin{lstlisting}[language=R, caption={Original \texttt{gtable\_filter} (trimmed)}]
+\begin{lstlisting}[
+    float,
+    caption={Original \texttt{gtable\_filter} (trimmed)},
+    label={lst:gtable-filter},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 gtable_filter <- function(x, pattern, fixed = FALSE, trim = TRUE, invert = FALSE) {
   matches <- grepl(pattern, .subset2(x$layout, "name"), fixed = fixed)
   if (invert) matches <- !matches
@@ -276,6 +286,7 @@ gtable_filter <- function(x, pattern, fixed = FALSE, trim = TRUE, invert = FALSE
   x
 }
 \end{lstlisting}
+
 
 \paragraph{Mutant under inspection}
 \begin{itemize}
@@ -291,9 +302,20 @@ gtable_filter <- function(x, pattern, fixed = FALSE, trim = TRUE, invert = FALSE
 - **Mutation:** deleted line 42
 
 **Line 42 in the original code:**
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Conditional call to \texttt{gtable\_trim} when \texttt{trim} is TRUE},
+    label={lst:gtable-filter-trim-line},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 if (trim) x <- gtable_trim(x)
-\end{verbatim}
+\end{lstlisting}
+
 
 **Effect of the mutation:**  
 The mutant removes the call to \texttt{gtable\_trim(x)} when \texttt{trim} is \texttt{TRUE}. This means the mutant will never trim empty rows/columns, regardless of the value of the \texttt{trim} argument.
