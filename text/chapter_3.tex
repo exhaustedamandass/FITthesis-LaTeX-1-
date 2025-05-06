@@ -1,7 +1,7 @@
 % Solution design chapter % 
 
 \begin{chapterabstract}
-% put abstract here %
+This chapter surveys the core technologies and constraints that underpin our R mutation‐testing tool. We first introduce the key libraries—devtools for streamlined package workflows, jsonlite for robust JSON handling, httr for HTTP communication, and furrr for parallel execution in R—alongside Google Test for C++ components and the OpenAI API for language‐model integration. We then outline the design constraints driving our architecture: customer and business requirements (seamless testthat integration, clear reporting, cost efficiency), performance and scalability (parallel execution, incremental analysis, batching), and compatibility/maintainability (cross‐platform support, modularity, extensibility). Together, these technologies and constraints form the foundation for our tool’s implementation and evaluation.
 \end{chapterabstract}
 
 \section{Technologies}
@@ -252,9 +252,3 @@ Ensuring the long‐term viability of the tool involves:
   \item \textbf{Cross‐Platform Functionality:} Support Linux, Windows, and macOS environments with identical behavior.
   \item \textbf{Extensibility:} Provide plugin hooks for custom mutation operators and integration with other R-based tools (e.g., code coverage, linters).
 \end{itemize}
-
-\section{Application data flow}
-
-%Data flow diagram showing where the data is coming from and where going %
-
-%do we need this????% 
