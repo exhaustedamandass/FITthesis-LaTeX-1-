@@ -265,7 +265,7 @@ At entry, \texttt{applyMutation} simply checks bounds and delegates based on the
 
 \medskip
 \noindent\textbf{Flip Mutation}  
-Creates a protected duplicate, navigates to the target node via its path, applies the operator’s \texttt{flip()}, and annotates with a texttt{mutation_info} string:
+Creates a protected duplicate, navigates to the target node via its path, applies the operator’s \texttt{flip()}, and annotates with a \texttt{mutation\_info} string:
 
 \begin{lstlisting}[
     float,
@@ -371,7 +371,7 @@ class MultiplyOperator : public ArithmeticOperator {
 \end{lstlisting}
 
 
-Logical operators follow the same pattern (e.g.\ \texttt{AndOperator} flips “&” to “|”, \texttt{LogicalOrOperator} flips “||” to “&&”) \cite{offutt1996practical,jia2011analysis}.
+Logical operators follow the same pattern (e.g.\ \texttt{AndOperator} flips “\&” to “|”, \texttt{LogicalOrOperator} flips “||” to “\&\&”) \cite{offutt1996practical,jia2011analysis}.
 
 \subsubsection{Unary Operator Mutations}
 
@@ -429,7 +429,7 @@ Adding a new operator involves:
 \begin{enumerate}
   \item Creating a subclass of \texttt{Operator} (or an existing family) with a constructor installing the target symbol.
   \item Implementing \texttt{flip(SEXP\&)} to perform the AST transformation.
-  \item Registering the operator in \texttt{ASTHandler}’s \texttt{op_map} to enable its detection.
+  \item Registering the operator in \texttt{ASTHandler}’s \texttt{op\_map} to enable its detection.
 \end{enumerate}
 
 This modular hierarchy balances code reuse with the flexibility to support any mutation pattern required for thorough test‐suite evaluation.

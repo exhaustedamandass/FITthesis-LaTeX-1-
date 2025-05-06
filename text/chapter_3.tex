@@ -10,7 +10,17 @@
 
 The \texttt{devtools} package streamlines R package development by providing functions to create package skeletons, load code, run tests, and build documentation in a single workflow \cite{wickham2019devtools}. It integrates tightly with \texttt{roxygen2} for in‐source documentation and with continuous integration services.
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Creating, testing, and building an R package with \texttt{devtools}},
+    label={lst:devtools-package-workflow},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 # Create a new package skeleton
 library(devtools)
 create("MyPackage")
@@ -24,7 +34,8 @@ test("MyPackage")
 # Document and build package
 document("MyPackage/")
 build("MyPackage/")
-\end{verbatim}
+\end{lstlisting}
+
 
 By automating these repetitive tasks, \texttt{devtools} reduces boilerplate and accelerates iterative development.
 
@@ -32,7 +43,17 @@ By automating these repetitive tasks, \texttt{devtools} reduces boilerplate and 
 
 The \texttt{jsonlite} package provides a robust, high‐performance JSON parser and generator for R, supporting both streaming and in‐memory operations. It maps R objects to JSON with consistent type coercion rules, making it ideal for API interaction and data interchange \cite{ooms2014jsonlite}.
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Parsing and pretty-printing JSON with \texttt{jsonlite} in R},
+    label={lst:jsonlite-parse-pretty},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 library(jsonlite)
 
 # Parse JSON string into R list/data.frame
@@ -41,7 +62,8 @@ json_data <- fromJSON('{"x":1,"y":[2,3],"z":{"a":true}}')
 # Convert R object back to pretty JSON
 json_pretty <- toJSON(json_data, pretty = TRUE)
 cat(json_pretty)
-\end{verbatim}
+\end{lstlisting}
+
 
 This two-way mapping ensures round-trip fidelity when exchanging data with web services.
 
@@ -49,7 +71,17 @@ This two-way mapping ensures round-trip fidelity when exchanging data with web s
 
 \texttt{httr} simplifies working with HTTP from R by wrapping low‐level HTTP methods in user-friendly functions. It handles authentication, redirection, and cookies, and parses responses into R objects \cite{wickham2011httr}.
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Basic HTTP GET request and JSON parsing with \texttt{httr} in R},
+    label={lst:httr-get-parse},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 library(httr)
 
 # Basic GET request
@@ -61,7 +93,8 @@ stop_for_status(resp)
 
 # Parse JSON content
 data <- content(resp, as = "parsed")
-\end{verbatim}
+\end{lstlisting}
+
 
 For POST requests with JSON payloads, \texttt{httr} manages encoding and content‐type headers automatically.
 
@@ -69,7 +102,17 @@ For POST requests with JSON payloads, \texttt{httr} manages encoding and content
 
 The \texttt{furrr} package combines the mapping functions of \texttt{purrr} with the parallel execution capabilities of the \texttt{future} framework, allowing seamless parallel iteration in R \cite{Vaughan2020furrr}.
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Parallel \texttt{future\_map} over a vector using \texttt{furrr}},
+    label={lst:furrr-parallel-map},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 library(furrr)
 plan(multisession, workers = 4)
 
@@ -78,7 +121,8 @@ results <- future_map(1:10, function(x) {
   Sys.sleep(1)  # simulate work
   x^2
 })
-\end{verbatim}
+\end{lstlisting}
+
 
 By changing the \texttt{plan()}, you can switch between multicore, multisession, or cluster‐based execution with minimal code changes.
 
@@ -86,7 +130,17 @@ By changing the \texttt{plan()}, you can switch between multicore, multisession,
 
 GoogleTest is Google’s C++ testing framework offering rich assertions, test fixtures, and death tests for verifying code correctness. Its expressive macros and automatic test discovery facilitate maintainable C++ test suites \cite{google2023gtest}.
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Google Test example for the \texttt{square} function},
+    label={lst:example-square-test},
+    language=C++,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 // example.cpp
 #include <gtest/gtest.h>
 
@@ -105,7 +159,8 @@ int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-\end{verbatim}
+\end{lstlisting}
+
 
 Compile and run with:
 \begin{verbatim}
@@ -117,7 +172,17 @@ g++ example.cpp -lgtest -pthread -o example_test
 
 The OpenAI API provides RESTful endpoints for interacting with language models. Using \texttt{httr} in R, you can send requests and handle responses for completions, embeddings, and more \cite{openai2023api}.
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={POST request to OpenAI Completions API using \texttt{httr} and \texttt{jsonlite}},
+    label={lst:openai-httr-post},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 library(httr)
 library(jsonlite)
 
@@ -139,10 +204,10 @@ resp <- POST(
 stop_for_status(resp)
 result <- content(resp, as = "parsed")
 cat(result$choices[[1]]$text)
-\end{verbatim}
+\end{lstlisting}
+
 
 This integration enables programmatic access to advanced NLP capabilities directly from R.
-
 
 \section{Design constraint}
 

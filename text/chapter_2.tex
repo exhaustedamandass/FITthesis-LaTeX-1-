@@ -65,13 +65,21 @@ The industrial importance of mutation testing has been demonstrated notably by P
   \label{tab:MutationOperation}
 \end{table}
 
-
-
 \subsection{Mutatr}
 
 Mutatr is an R package providing prototype‐based mutable objects, enabling in‐memory mutation of R object state without altering the original prototypes \cite{wickham_mutatr}. Inspired by the Io language and JavaScript’s object model, it offers a concise API for defining prototypes, cloning them, and applying direct field mutations—features that can be leveraged to implement custom mutation operators or to generate dynamic test fixtures in R-based mutation testing pipelines \cite{iolanguage}.
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Installing Mutatr from GitHub and mutating a prototype object},
+    label={lst:mutatr-install-and-mutate},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 # Install Mutatr from GitHub
 if (!requireNamespace("devtools", quietly = TRUE)) {
   install.packages("devtools")
@@ -90,7 +98,8 @@ mutant$flag  <- FALSE
 
 # Inspect mutated object
 print(mutant)
-\end{verbatim}
+\end{lstlisting}
+
 
 By integrating Mutatr-driven object mutations into test suites—e.g., verifying that functions behave correctly when object state changes—developers can extend traditional code-level mutation testing with stateful, object-oriented mutation scenarios.
 
@@ -100,7 +109,17 @@ By integrating Mutatr-driven object mutations into test suites—e.g., verifying
 
 R is a widely-used open-source programming language designed primarily for statistical computing, data analysis, and graphical visualization \cite{R-base}. Due to its extensive package ecosystem and versatility, R has become one of the leading tools for exploratory data analysis, predictive modeling, and reproducible research \cite{wickham2014advanced}. Its rich syntax enables users to express complex analytical workflows concisely, facilitating rapid prototyping and iterative development \cite{wickham2019r4ds}. For example, the following R script generates a simple scatter plot:
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Sample \texttt{ggplot2} scatter plot code in R},
+    label={lst:ggplot-sample},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 # Load required package
 library(ggplot2)
 
@@ -118,7 +137,8 @@ ggplot(df, aes(x = x, y = y)) +
     x = "X-axis",
     y = "Y-axis"
   )
-\end{verbatim}
+\end{lstlisting}
+
 
 This snippet demonstrates how easily R can be used for data visualization \cite{wickham2019r4ds}.
 
@@ -126,7 +146,17 @@ This snippet demonstrates how easily R can be used for data visualization \cite{
 
 The \texttt{testthat} package is an R library specifically designed to simplify and encourage automated software testing practices \cite{wickham2011testthat}. Developed by Hadley Wickham, it has become the most widely used testing framework within the R community. \texttt{testthat} provides a straightforward and expressive syntax, allowing developers to clearly articulate test expectations and quickly verify the correctness of their functions. For instance, a simple unit test using \texttt{testthat}:
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={R function \texttt{add} and its \texttt{testthat} unit tests},
+    label={lst:add-testthat},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 # Example function to add two numbers
 add <- function(a, b) {
   a + b
@@ -139,7 +169,8 @@ test_that("add returns correct sum", {
   expect_equal(add(1, 2), 3)
   expect_type(add(1, 2), "double")
 })
-\end{verbatim}
+\end{lstlisting}
+
 
 By supporting unit testing and test-driven development, \texttt{testthat} enhances software reliability and encourages developers to rigorously consider the behavior of their code. It integrates seamlessly into the standard R package development workflow, facilitating continuous integration, debugging, and reproducible test suites \cite{wickham2015rpackages}.
 
@@ -147,7 +178,17 @@ By supporting unit testing and test-driven development, \texttt{testthat} enhanc
 
 A typical R package follows a standardized directory layout to ensure consistency and reproducibility \cite{wickham2015rpackages}. At a minimum, an R package contains:
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Directory structure of the R package},
+    label={lst:package-structure},
+    language=xml,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 PackageName/
   DESCRIPTION
   NAMESPACE
@@ -158,7 +199,8 @@ PackageName/
   tests/
     testthat/
       test-functions.R
-\end{verbatim}
+\end{lstlisting}
+
 
 The \texttt{DESCRIPTION} file provides metadata such as package name, version, and dependencies, while \texttt{NAMESPACE} declares exported functions. The \texttt{R/} directory holds R scripts with function definitions, and \texttt{man/} contains documentation in \texttt{.Rd} format. Test files reside in \texttt{tests/testthat/}, enabling automated testing with \texttt{testthat}.
 
@@ -166,7 +208,17 @@ The \texttt{DESCRIPTION} file provides metadata such as package name, version, a
 
 For performance-critical code, R allows integration of C routines through its R C Application Programming Interface (API) \cite{R-base}. Central to this interface is the \texttt{SEXP} type, an opaque pointer representing R objects in C. Proper memory management requires the use of \texttt{PROTECT} and \texttt{UNPROTECT} to guard against garbage collection. For example, a C function to sum elements of a numeric vector:
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={C function to sum a numeric vector from R},
+    label={lst:c-sum-vector},
+    language=C,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 // sum.c
 #include <R.h>
 #include <Rinternals.h>
@@ -190,7 +242,8 @@ SEXP c_sum(SEXP vector) {
   UNPROTECT(2); // vector and result
   return result;
 }
-\end{verbatim}
+\end{lstlisting}
+
 
 This routine can be compiled and called from R via the \texttt{.Call} interface, providing significant speedups for large-scale numerical operations \cite{R-base}.
 
@@ -204,17 +257,38 @@ In R’s internal C API, pairlists are the fundamental data structure used to re
 
 Visiting every element in such a list is straightforward: you begin at the head \texttt{SEXP} and follow the \texttt{CDR()} pointer repeatedly until you encounter \texttt{R\_NilValue}.  At each step, you can inspect the current element’s value via \texttt{CAR()}, and if the list is named, examine the tag via \texttt{TAG()}.  A typical traversal loop looks like:
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Iterating over a linked R list with element and tag extraction},
+    label={lst:iterate-plist},
+    language=C,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 for (SEXP node = plist; node != R_NilValue; node = CDR(node)) {
-  SEXP elt = CAR(node);        // current element
-  SEXP name = TAG(node);       // may be R_NilValue if unnamed
+  SEXP elt  = CAR(node);        // current element
+  SEXP name = TAG(node);        // may be R_NilValue if unnamed
   // process 'elt' and, if 'name' != R_NilValue, CHAR(PRINTNAME(name))
 }
-\end{verbatim}
+\end{lstlisting}
+
 
 This pattern is used for everything from counting elements to inspecting argument names in a call.  For example, to count the elements:
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Counting the number of elements in a pairlist},
+    label={lst:pairlist-length},
+    language=C,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 // Count the number of elements in a pairlist
 int pairlist_length(SEXP plist) {
   int count = 0;
@@ -223,13 +297,24 @@ int pairlist_length(SEXP plist) {
   }
   return count;
 }
-\end{verbatim}
+\end{lstlisting}
+
 
 If you need random access to the \(n\)th element, R provides the helper function \texttt{Rf\_nthcdr(plist, n)}, which returns the sublist starting at position \(n\) (zero‐based).  However, beware: repeatedly calling \texttt{Rf\_nthcdr} inside a loop can degrade to \(O(n^2)\) time complexity for long lists, since each call walks from the head \cite{wickham_pairlists}.  
 
 When handling function calls in C, you often want to skip the first element (the function symbol) and traverse only the arguments:
 
-\begin{verbatim}
+\begin{lstlisting}[
+    float,
+    caption={Print each argument name and its type for a call object},
+    label={lst:print-call-args},
+    language=C,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
 // Print each argument name and its type for a call object
 void print_call_args(SEXP call) {
   SEXP args = CDR(call);  // skip function name at CAR(call)
@@ -244,6 +329,6 @@ void print_call_args(SEXP call) {
             type2char(TYPEOF(val)));
   }
 }
-\end{verbatim}
+\end{lstlisting}
 
 In this way, you can both retrieve the value and the associated name of each argument in the call.  This canonical looping structure—advance by \texttt{CDR()}, inspect via \texttt{CAR()}, and optionally read or modify the tag via \texttt{TAG()} or \texttt{SET\_TAG()}—applies uniformly to all pairlist‐based data in the R internals API \cite{wickham_pairlists}.
