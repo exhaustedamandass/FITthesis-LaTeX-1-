@@ -1,7 +1,7 @@
 % Background %
 
 \begin{chapterabstract}
-This chapter begins with a comprehensive overview of mutation testing, a fault‐injection technique that quantifies test suite effectiveness by introducing small syntactic changes—mutants—into code and measuring the mutation score (the ratio of killed to generated mutants) to uncover weaknesses beyond traditional coverage metrics \cite{jia2011analysis,offutt1996practical,petrovic2018industrial}. We present Mutatr, an R package for prototype‐based mutable objects—heavily inspired by the Io language and JavaScript—which enables the dynamic creation and manipulation of mutated object states to support custom mutation operators in testing workflows \cite{hadley-mutatr,iolanguage}. We then introduce the R language, highlighting its rich ecosystem for statistical computing and data analysis, and the \texttt{testthat} framework for writing expressive unit tests within R packages \cite{rcore2024,wickham2011testthat}. Finally, we delve into R’s C API internals—focusing on the \texttt{SEXP} type, memory protection, and the traversal of pairlists via \texttt{CAR()}, \texttt{CDR()}, and \texttt{TAG()}—to illustrate how low‐level structures underpin R’s object model \cite{hadley-r-internals-pairlists}.  
+This chapter begins with a comprehensive overview of mutation testing, a fault‐injection technique that quantifies test suite effectiveness by introducing small syntactic changes—mutants—into code and measuring the mutation score (the ratio of killed to generated mutants) to uncover weaknesses beyond traditional coverage metrics \cite{jia2011analysis,offutt1996practical,petrovic2018industrial}. We present Mutatr, an R package for prototype‐based mutable objects—heavily inspired by the Io language and JavaScript—which enables the dynamic creation and manipulation of mutated object states to support custom mutation operators in testing workflows \cite{wickham_mutatr,iolanguage}. We then introduce the R language, highlighting its rich ecosystem for statistical computing and data analysis, and the \texttt{testthat} framework for writing expressive unit tests within R packages \cite{R-base,wickham2011testthat}. Finally, we delve into R’s C API internals—focusing on the \texttt{SEXP} type, memory protection, and the traversal of pairlists via \texttt{CAR()}, \texttt{CDR()}, and \texttt{TAG()}—to illustrate how low‐level structures underpin R’s object model \cite{wickham_pairlists}.  
 
 \end{chapterabstract}
 
@@ -53,7 +53,7 @@ The industrial importance of mutation testing has been demonstrated notably by P
 
 \subsection{Mutatr}
 
-Mutatr is an R package providing prototype‐based mutable objects, enabling in‐memory mutation of R object state without altering the original prototypes \cite{hadley-mutatr}. Inspired by the Io language and JavaScript’s object model, it offers a concise API for defining prototypes, cloning them, and applying direct field mutations—features that can be leveraged to implement custom mutation operators or to generate dynamic test fixtures in R-based mutation testing pipelines \cite{iolanguage}.
+Mutatr is an R package providing prototype‐based mutable objects, enabling in‐memory mutation of R object state without altering the original prototypes \cite{wickham_mutatr}. Inspired by the Io language and JavaScript’s object model, it offers a concise API for defining prototypes, cloning them, and applying direct field mutations—features that can be leveraged to implement custom mutation operators or to generate dynamic test fixtures in R-based mutation testing pipelines \cite{iolanguage}.
 
 \begin{verbatim}
 # Install Mutatr from GitHub
@@ -82,7 +82,7 @@ By integrating Mutatr-driven object mutations into test suites—e.g., verifying
 
 \subsection{R language}
 
-R is a widely-used open-source programming language designed primarily for statistical computing, data analysis, and graphical visualization \cite{rcore2024}. Due to its extensive package ecosystem and versatility, R has become one of the leading tools for exploratory data analysis, predictive modeling, and reproducible research \cite{wickham2014advanced}. Its rich syntax enables users to express complex analytical workflows concisely, facilitating rapid prototyping and iterative development \cite{wickham2019r4ds}. For example, the following R script generates a simple scatter plot:
+R is a widely-used open-source programming language designed primarily for statistical computing, data analysis, and graphical visualization \cite{R-base}. Due to its extensive package ecosystem and versatility, R has become one of the leading tools for exploratory data analysis, predictive modeling, and reproducible research \cite{wickham2014advanced}. Its rich syntax enables users to express complex analytical workflows concisely, facilitating rapid prototyping and iterative development \cite{wickham2019r4ds}. For example, the following R script generates a simple scatter plot:
 
 \begin{verbatim}
 # Load required package
@@ -148,7 +148,7 @@ The \texttt{DESCRIPTION} file provides metadata such as package name, version, a
 
 \subsection{R C API}
 
-For performance-critical code, R allows integration of C routines through its R C Application Programming Interface (API) \cite{rcore2024}. Central to this interface is the \texttt{SEXP} type, an opaque pointer representing R objects in C. Proper memory management requires the use of \texttt{PROTECT} and \texttt{UNPROTECT} to guard against garbage collection. For example, a C function to sum elements of a numeric vector:
+For performance-critical code, R allows integration of C routines through its R C Application Programming Interface (API) \cite{R-base}. Central to this interface is the \texttt{SEXP} type, an opaque pointer representing R objects in C. Proper memory management requires the use of \texttt{PROTECT} and \texttt{UNPROTECT} to guard against garbage collection. For example, a C function to sum elements of a numeric vector:
 
 \begin{verbatim}
 // sum.c
@@ -176,9 +176,9 @@ SEXP c_sum(SEXP vector) {
 }
 \end{verbatim}
 
-This routine can be compiled and called from R via the \texttt{.Call} interface, providing significant speedups for large-scale numerical operations \cite{rcore2024}.
+This routine can be compiled and called from R via the \texttt{.Call} interface, providing significant speedups for large-scale numerical operations \cite{R-base}.
 
-In R’s internal C API, pairlists are the fundamental data structure used to represent any ordered collection of tagged elements—most notably, argument lists for function calls (`LANGSXP`), the special `...` object (`DOTSXP`), and attribute lists on objects (`LISTSXP`) \cite{hadley-r-internals-pairlists}.  Under the hood, each pairlist is implemented as a singly linked list of CONS cells, where each cell holds:
+In R’s internal C API, pairlists are the fundamental data structure used to represent any ordered collection of tagged elements—most notably, argument lists for function calls (`LANGSXP`), the special `...` object (`DOTSXP`), and attribute lists on objects (`LISTSXP`) \cite{wickham_pairlists}.  Under the hood, each pairlist is implemented as a singly linked list of CONS cells, where each cell holds:
 
 \begin{itemize}
   \item \texttt{CAR(p)}: the payload, an \texttt{SEXP} that points to the actual R object stored in that position;
@@ -209,7 +209,7 @@ int pairlist_length(SEXP plist) {
 }
 \end{verbatim}
 
-If you need random access to the \(n\)th element, R provides the helper function \texttt{Rf\_nthcdr(plist, n)}, which returns the sublist starting at position \(n\) (zero‐based).  However, beware: repeatedly calling \texttt{Rf\_nthcdr} inside a loop can degrade to \(O(n^2)\) time complexity for long lists, since each call walks from the head \cite{hadley-r-internals-pairlists}.  
+If you need random access to the \(n\)th element, R provides the helper function \texttt{Rf\_nthcdr(plist, n)}, which returns the sublist starting at position \(n\) (zero‐based).  However, beware: repeatedly calling \texttt{Rf\_nthcdr} inside a loop can degrade to \(O(n^2)\) time complexity for long lists, since each call walks from the head \cite{wickham_pairlists}.  
 
 When handling function calls in C, you often want to skip the first element (the function symbol) and traverse only the arguments:
 
@@ -230,4 +230,4 @@ void print_call_args(SEXP call) {
 }
 \end{verbatim}
 
-In this way, you can both retrieve the value and the associated name of each argument in the call.  This canonical looping structure—advance by \texttt{CDR()}, inspect via \texttt{CAR()}, and optionally read or modify the tag via \texttt{TAG()} or \texttt{SET\_TAG()}—applies uniformly to all pairlist‐based data in the R internals API \cite{hadley-r-internals-pairlists}.
+In this way, you can both retrieve the value and the associated name of each argument in the call.  This canonical looping structure—advance by \texttt{CDR()}, inspect via \texttt{CAR()}, and optionally read or modify the tag via \texttt{TAG()} or \texttt{SET\_TAG()}—applies uniformly to all pairlist‐based data in the R internals API \cite{wickham_pairlists}.

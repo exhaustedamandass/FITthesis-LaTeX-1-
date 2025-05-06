@@ -18,7 +18,13 @@ All experiments were executed inside a Linux virtual machine provisioned via Lim
   \item \textbf{MutatoR:} Latest GitHub commit at time of testing  
 \end{itemize}
 
-MutatoR itself was built and loaded via \texttt{devtools::load\_all()}, with all native code compiled under GCC 11.2.0.  We used \texttt{microbenchmark::microbenchmark()} to measure per‐package execution times, and the \texttt{future} backend configured for multisession parallelism to stress‐test MutatoR’s parallel mutation and test‐execution pipeline.
+MutatoR itself was built and loaded via \texttt{devtools\allowbreak::\allowbreak load\_all()}, 
+with all native code compiled under GCC 11.2.0. We used 
+\texttt{microbenchmark\allowbreak::\allowbreak microbenchmark()} 
+to measure per‐package execution times, and the \texttt{future} 
+backend configured for multisession parallelism to stress‐test 
+MutatoR’s parallel mutation and test‐execution pipeline.
+
 
 \section{Case Studies}
 
@@ -59,11 +65,11 @@ The \texttt{oRaklE} package is a utility for random key–lock emulation in R. I
 \begin{table}[htbp]
   \centering
   \begin{tabular}{lrrrr}
-    \toprule
-    Package        & R files & LOC (R) & Test files & Test cases \\
-    \midrule
-    \texttt{oRaklE} & 19      & 250       & 1          & 1          \\
-    \bottomrule
+    \hline\hline
+    Package & R files & LOC (R) & Test files & Test cases \\
+    \hline
+    \texttt{oRaklE} & 19 & 250 & 1 & 1 \\
+    \hline
   \end{tabular}
   \caption{Characteristics of the \texttt{oRaklE} package used in the small‐size case study.}
   \label{tab:orakle-metrics}
@@ -73,7 +79,7 @@ The \texttt{oRaklE} package is a utility for random key–lock emulation in R. I
 
 \subsection{Medium Packages}
 
-To evaluate MutatoR on a typical medium‐sized codebase, we selected the \texttt{gtable} package—a layout engine for grid graphics that is widely used by \texttt{ggplot2} and other visualization tools \cite{pedersen2024gtable}.  \texttt{gtable} provides a representative workload with a moderate number of source files and a comprehensive \texttt{testthat} suite.
+To evaluate MutatoR on a typical medium‐sized codebase, we selected the \texttt{gtable} package—a layout engine for grid graphics that is widely used by \texttt{ggplot2} and other visualization tools \cite{rlib-gtable}.  \texttt{gtable} provides a representative workload with a moderate number of source files and a comprehensive \texttt{testthat} suite.
 
 \subsubsection{\texttt{gtable} Package}
 
@@ -88,11 +94,11 @@ The \texttt{gtable} package (version 0.3.6) is structured as follows:
 \begin{table}[htbp]
   \centering
   \begin{tabular}{lrrrr}
-    \toprule
-    Package  & R files & LOC (R) & Test files & Test cases \\
-    \midrule
-    \texttt{gtable} & 13      & 1\,200    & 8          & 45         \\
-    \bottomrule
+    \hline\hline
+    Package & R files & LOC (R) & Test files & Test cases \\
+    \hline
+    \texttt{gtable} & 13 & 1\,200 & 8 & 45 \\
+    \hline
   \end{tabular}
   \caption{Characteristics of the \texttt{gtable} package used in the medium‐size case study.}
   \label{tab:gtable-metrics}
@@ -105,15 +111,15 @@ The mutation run on the \texttt{gtable} package completed in approximately 5.72 
 \begin{table}[htbp]
   \centering
   \begin{tabular}{lr}
-    \toprule
-    Metric               & Value    \\
-    \midrule
-    Total execution time (sampled) & 5.72 s   \\
-    Total mutants        & 243      \\
-    Killed               & 132      \\
-    Survived             & 111      \\
-    Mutation score       & 54.32 \% \\
-    \bottomrule
+    \hline\hline
+    Metric & Value \\
+    \hline
+    Total execution time (sampled) & 5.72 s \\
+    Total mutants & 243 \\
+    Killed & 132 \\
+    Survived & 111 \\
+    Mutation score & 54.32 \% \\
+    \hline
   \end{tabular}
   \caption{Mutation testing summary for \texttt{gtable}.}
   \label{tab:gtable-summary}
@@ -124,20 +130,20 @@ To understand where time was spent, we sampled profiling data during the mutatio
 \begin{table}[htbp]
   \centering
   \begin{tabular}{lrr}
-    \toprule
-    Function                   & Total time (s) & Self time (s) \\
-    \midrule
-    mutate\_package             & 5.72           & 0.00          \\
-    furrr\_map\_template         & 4.84           & 0.00          \\
-    poll\_progress              & 3.76           & 0.00          \\
-    any\_running                & 3.62           & 0.02          \\
-    resolved.list               & 3.60           & 0.06          \\
-    resolved.ClusterFuture      & 3.54           & 0.24          \\
-    connectionId                & 1.96           & 0.08          \\
-    capture.output              & 1.56           & 0.06          \\
-    serialize                   & 1.06           & 1.06          \\
-    file.copy                   & 0.46           & 0.42          \\
-    \bottomrule
+    \hline\hline
+    Function & Total time (s) & Self time (s) \\
+    \hline
+    mutate\_package & 5.72 & 0.00 \\
+    furrr\_map\_template & 4.84 & 0.00 \\
+    poll\_progress & 3.76 & 0.00 \\
+    any\_running & 3.62 & 0.02 \\
+    resolved.list & 3.60 & 0.06 \\
+    resolved.ClusterFuture & 3.54 & 0.24 \\
+    connectionId & 1.96 & 0.08 \\
+    capture.output & 1.56 & 0.06 \\
+    serialize & 1.06 & 1.06 \\
+    file.copy & 0.46 & 0.42 \\
+    \hline
   \end{tabular}
   \caption{Top ten functions by total and self time in the \texttt{gtable} mutation run.}
   \label{tab:gtable-profile}
@@ -147,7 +153,7 @@ These results indicate that while mutant generation and test execution produce a
 
 \subsection{Big Packages}
 
-For a large‐scale evaluation, we chose the \texttt{dplyr} package—a cornerstone of the tidyverse that provides a grammar of data manipulation and is known for its extensive, well‐tested codebase \cite{wickham2023dplyr}.
+For a large‐scale evaluation, we chose the \texttt{dplyr} package—a cornerstone of the tidyverse that provides a grammar of data manipulation and is known for its extensive, well‐tested codebase \cite{dplyr}.
 
 \subsubsection{\texttt{dplyr} Package}
 
@@ -162,11 +168,10 @@ The \texttt{dplyr} package (version 1.1.1) exhibits the following structure:
 \begin{table}[htbp]
   \centering
   \begin{tabular}{lrrrr}
-    \toprule
-    Package   & R files & LOC (R) & Test files & Test cases \\
-    \midrule
-    \texttt{dplyr} & 60+     & 7\,000    & 100+       & 300+       \\
-    \bottomrule
+    \hline\hline
+    Package & R files & LOC (R) & Test files & Test cases \\
+    \hline
+    \texttt{dplyr} & 60+ & 7\,000 & 100+ & 300+ \\
   \end{tabular}
   \caption{Characteristics of the \texttt{dplyr} package used in the large‐size case study.}
   \label{tab:dplyr-metrics}
@@ -231,25 +236,23 @@ This design enables a comprehensive comparison of model accuracy, reasoning qual
 
 \subsection{chaGPT 4.1 model results}
 
-\subsection{chaGPT 4.1 model results}
-
 \subsubsection{Overall results}
 
 \begin{table}[ht]
   \centering
   \begin{tabular}{lr}
-    \toprule
-    \textbf{Metric}            & \textbf{Count / Score}      \\
-    \midrule
-    Total mutants              & 243                          \\
-    Killed                     & 132                          \\
-    Survived                   & 111                          \\
-    Equivalent                 &   0                          \\
-    Not Equivalent             &  56                          \\
-    Uncertain                  &  55                          \\
-    Mutation Score             & 54.32\%                      \\
-    Adjusted Score             & 54.32\% (excluding equivalents) \\
-    \bottomrule
+    \hline\hline
+    \textbf{Metric} & \textbf{Count / Score} \\
+    \hline
+    Total mutants & 243 \\
+    Killed & 132 \\
+    Survived & 111 \\
+    Equivalent & 0 \\
+    Not Equivalent & 56 \\
+    Uncertain & 55 \\
+    Mutation Score & 54.32\% \\
+    Adjusted Score & 54.32\% (excluding equivalents) \\
+    \hline
   \end{tabular}
   \caption{Summary of GPT-4.1 (\texttt{gpt-4.1}) equivalence judgments on the \texttt{gtable} mutants}
   \label{tab:gpt41-overall}
@@ -277,14 +280,14 @@ gtable_filter <- function(x, pattern, fixed = FALSE, trim = TRUE, invert = FALSE
 \paragraph{Mutant under inspection}
 \begin{itemize}
   \item \textbf{Mutant ID:} \texttt{filter.R\_filter.R\_003.R}
-  \item \textbf{Mutation:} deletion of line 42 (`if (trim) x <- gtable_trim(x)`)
+  \item \textbf{Mutation:} deletion of line 42 (\texttt{if (trim) x <- gtable\_trim(x)})
 \end{itemize}
 
 \paragraph{Answer received from GPT-4.1}
 \begin{quote}
 **Assessment of Mutant:**
 
-- **Mutant ID:** filter.R_filter.R_003.R  
+-   \item \textbf{Mutant ID:} \texttt{filter.R\_filter.R\_003.R}  
 - **Mutation:** deleted line 42
 
 **Line 42 in the original code:**
@@ -293,7 +296,7 @@ if (trim) x <- gtable_trim(x)
 \end{verbatim}
 
 **Effect of the mutation:**  
-The mutant removes the call to `gtable_trim(x)` when `trim` is `TRUE`. This means the mutant will never trim empty rows/columns, regardless of the value of the `trim` argument.
+The mutant removes the call to \texttt{gtable\_trim(x)} when \texttt{trim} is \texttt{TRUE}. This means the mutant will never trim empty rows/columns, regardless of the value of the \texttt{trim} argument.
 
 **Behavioral difference:**  
 For any input where filtering leaves empty rows or columns and `trim = TRUE`, the original will remove them, but the mutant will not.
@@ -304,16 +307,114 @@ For any input where filtering leaves empty rows or columns and `trim = TRUE`, th
 
 \begin{enumerate}
   \item \textbf{Identification:}  
-    GPT-4.1 correctly located the mutated line inside `gtable_filter` and quoted it verbatim, demonstrating precise pinpointing of the defect.
+    GPT-4.1 correctly located the mutated line inside \texttt{gtable\_filter} and quoted it verbatim, demonstrating precise pinpointing of the defect.
   
-  \item \textbf{Reasoning Quality:}  
-    The model’s analysis clearly explains that removing the `gtable_trim` call alters behavior whenever empty rows/columns would otherwise be removed.  This logical chain is sound and complete.
+     \item \textbf{Reasoning Quality:}  
+    The model’s analysis clearly explains that removing the \texttt{gtable\_trim} call alters behavior whenever empty rows/columns would otherwise be removed. This logical chain is sound and complete.
+
 
   \item \textbf{Validation and Test Coverage:}  
-    Although GPT-4.1 correctly concludes “\texttt{NOT EQUIVALENT},” the existing test suite for \texttt{gtable} does not include a case where all grobs in a row/column are filtered out with `trim = TRUE`.  Hence, this mutant remains “survived” under current tests, making it a valid mutant for further testing or inclusion of a new test case.
+    Although GPT-4.1 correctly concludes “\texttt{NOT EQUIVALENT},” the existing test suite for \texttt{gtable} does not include a case where all grobs in a row/column are filtered out with `trim = TRUE`.  Hence, this mutant remains “survived” under current tests, making it a valid mutant for further testing or inclusion in a new test case.
 \end{enumerate}
 
 Overall, the manual check confirms GPT-4.1’s pinpointing and reasoning are both correct and useful, while also highlighting a gap in test coverage that the tool has exposed.
+
+\paragraph{Second mutant under inspection}
+\begin{itemize}
+    \item \textbf{Mutant ID:} 001       
+    \item \textbf{Mutation:} logical operator changed from \texttt{\&\&} to \texttt{||} in \texttt{check\_bool}
+    \item \textbf{Original code (lines 55–74, trimmed):}
+\begin{lstlisting}[language=R]
+
+  check_bool <- function(x, allow_na = FALSE, allow_null = FALSE) {
+    if (!missing(x) && .standalone_types_check_dot_call(
+          ffi_standalone_is_bool_1.0.7, x, allow_na, allow_null)) {
+      return(invisible(NULL))
+    }
+    # … rest of function …
+  }
+  \end{lstlisting}
+  \item \textbf{Mutated code:}
+  \begin{lstlisting}[language=R]
+    if (!missing(x) || .standalone_types_check_dot_call(
+          ffi_standalone_is_bool_1.0.7, x, allow_na, allow_null)) {
+      return(invisible(NULL))
+    }
+  \end{lstlisting}
+\end{itemize}
+
+\paragraph{Answer received from GPT-4.1}
+\begin{quote}
+**Assessment of Mutant:**
+
+- **Mutant ID:** 001  
+- \begin{itemize}
+  \item \textbf{Mutation:} changed \texttt{\&\&} to \texttt{||} in the \texttt{if} condition
+\end{itemize}
+
+
+**Effect of the mutation:**  
+The mutant’s condition will return early if \emph{either} `x` is provided (regardless of the C call’s result) \emph{or} the C call succeeds (even if `x` is missing).  
+
+**Behavioral difference:**  
+- Original: early return only when `x` is present \emph{and} passes the C-level boolean check.  
+- Mutant: early return also when `x` is provided but fails the C check, or when `x` is missing but the C check (on `NULL`) passes (if that ever occurs).
+
+**Conclusion:**  
+**NOT EQUIVALENT**
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Identification:}  
+    GPT-4.1 correctly spotted the operator swap in the `if` condition and cited the precise code change.
+  
+  \item \textbf{Reasoning Quality:}  
+    The model’s explanation clearly contrasts the two logical paths and illustrates how the mutant condition diverges from the original in edge cases (missing `x` or failed C-call).
+  
+  \item \textbf{Validation and Test Coverage:}  
+    In practice, this mutant will alter behavior for inputs where `x` is provided but not a boolean, causing an early return instead of proceeding to error handling, and possibly for missing `x` if the C check handles `NULL`. Since the existing test suite does not cover these specific edge cases, the mutant remains “survived,” confirming its validity and highlighting another gap in coverage.
+\end{enumerate}
+
+\paragraph{Third mutant under inspection}
+\begin{itemize}
+  \item \textbf{Mutant ID:} new-data-frame.R\_new-data-frame.R\_002.R  
+  \item \textbf{Mutation:} changed logical operator from \texttt{!=} to \texttt{==} in \texttt{validate\_data\_frame}
+  \item \textbf{Original code (lines 14–21, trimmed):}
+  \begin{lstlisting}[language=R]
+  validate_data_frame <- function(x) {
+    if (length(unique(lengths(x))) != 1) {
+      cli::cli_abort('All elements in a data.frame must be of equal length')
+    }
+    if (is.null(names(x))) {
+      cli::cli_abort('columns must be named')
+    }
+  }
+  \end{lstlisting}
+  \item \textbf{Mutated code:}
+  \begin{lstlisting}[language=R]
+    if (length(unique(lengths(x))) == 1) {
+  \end{lstlisting}
+\end{itemize}
+
+\paragraph{Answer received from GPT-4.1}
+\begin{quote}
+DONT KNOW  
+\textbf{Reasoning:}  
+The change flips the error condition—now aborting when lengths are all equal rather than when they differ. Without knowledge of downstream usage, intended preconditions, or exhaustive test cases, it’s impossible to determine if this mutation preserves observable behavior under all valid inputs.
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Identification:}  
+    GPT-4.1 accurately located and described the operator swap (`!=` → `==`) in the length‐check conditional.
+  
+  \item \textbf{Reasoning Quality:}  
+    The model correctly recognizes that deciding equivalence would require complete specification of valid inputs and outputs; expressing “DONT KNOW” here is prudent.
+  
+  \item \textbf{Validation and Test Coverage:}  
+    No existing tests verify both cases where columns are uniform and where they differ in tandem with name checks. Lacking a formal spec or additional test cases, one cannot conclusively judge equivalence. Hence, the LLM’s uncertainty is justified.
+\end{enumerate}
+
+
 
 
 \subsection{chatGPT o1 model results}

@@ -3,13 +3,13 @@
 %put some pseudocode here, maybe a class diagram%
 
 \begin{chapterabstract}
-This chapter details the implementation of the mutation testing tool, combining native C++ code with a high-level R interface. We begin by presenting the C++ core—\texttt{C\_mutate\_file} and \texttt{C\_mutate\_single}—which leverage R’s \texttt{SEXP} API to traverse ASTs (via \texttt{ASTHandler}) and apply operator‐flip and delete mutations (via \texttt{Mutator}), supported by a modular operator class hierarchy for arithmetic, logical, unary, and delete operations \cite{rcore2024,hadley-r-internals-pairlists}. Next, we describe the R side: \texttt{mutate\_package} orchestrates per‐file mutations (\texttt{mutate\_file}), which in turn calls the C routines and falls back on \texttt{delete\_line\_mutants} for string‐deletion mutations. Surviving mutants are evaluated in parallel with \texttt{testthat} and \texttt{furrr} for efficient test execution \cite{wickham2011testthat,Vaughan2020furrr}. Finally, semantic equivalence detection is performed by \texttt{identify\_equivalent\_mutants} using the OpenAI API to filter out equivalent mutants before computing raw and adjusted mutation scores \cite{wickham2011httr,ooms2014jsonlite,openai2023api}.
+This chapter details the implementation of the mutation testing tool, combining native C++ code with a high-level R interface. We begin by presenting the C++ core—\texttt{C\_mutate\_file} and \texttt{C\_mutate\_single}—which leverage R’s \texttt{SEXP} API to traverse ASTs (via \texttt{ASTHandler}) and apply operator‐flip and delete mutations (via \texttt{Mutator}), supported by a modular operator class hierarchy for arithmetic, logical, unary, and delete operations \cite{R-base,wickham_pairlists}. Next, we describe the R side: \texttt{mutate\_package} orchestrates per‐file mutations (\texttt{mutate\_file}), which in turn calls the C routines and falls back on \texttt{delete\_line\_mutants} for string‐deletion mutations. Surviving mutants are evaluated in parallel with \texttt{testthat} and \texttt{furrr} for efficient test execution \cite{wickham2011testthat,Vaughan2020furrr}. Finally, semantic equivalence detection is performed by \texttt{identify\_equivalent\_mutants} using the OpenAI API to filter out equivalent mutants before computing raw and adjusted mutation scores \cite{wickham2011httr,ooms2014jsonlite,openai2023api}.
 
 \end{chapterabstract}
 
 \section{C++ Implementation}
 
-In this chapter, we detail the core C++ routines that drive the mutation testing engine’s integration with R’s internal API. We focus on two central functions, \texttt{C\_mutate\_file} and \texttt{C\_mutate\_single}, which together enumerate, apply, validate, and collect mutants for an entire R source file or a single expression, respectively. These functions rely on R’s \texttt{SEXP} type, protection stack, and evaluation APIs to safely manipulate R objects in native code \cite{rcore2024}.
+In this chapter, we detail the core C++ routines that drive the mutation testing engine’s integration with R’s internal API. We focus on two central functions, \texttt{C\_mutate\_file} and \texttt{C\_mutate\_single}, which together enumerate, apply, validate, and collect mutants for an entire R source file or a single expression, respectively. These functions rely on R’s \texttt{SEXP} type, protection stack, and evaluation APIs to safely manipulate R objects in native code \cite{R-base}.
 
 \subsection{\texttt{C\_mutate\_file} Function}
 
@@ -82,7 +82,7 @@ static struct CachedSyms {
 } SYM;
 \end{verbatim}
 
-\noindent\textbf{Symbol Caching}: Installing symbols once at startup avoids repeated lookups during traversal, improving performance when processing many expressions \cite{rcore2024}.
+\noindent\textbf{Symbol Caching}: Installing symbols once at startup avoids repeated lookups during traversal, improving performance when processing many expressions \cite{R-base}.
 
 \medskip
 \noindent\textbf{Deletable Check}  
@@ -174,7 +174,7 @@ void gatherOperatorsRecursive(
 }
 \end{verbatim}
 
-This design cleanly separates symbol lookup, context checking, and AST traversal, producing a comprehensive list of mutation candidates that downstream code can transform and validate \cite{rcore2024}.
+This design cleanly separates symbol lookup, context checking, and AST traversal, producing a comprehensive list of mutation candidates that downstream code can transform and validate \cite{R-base}.
 
 \subsection{Mutator class}
 
