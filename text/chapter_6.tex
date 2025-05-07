@@ -153,16 +153,16 @@ These results indicate that while mutant generation and test execution produce a
 
 \subsection{Big Packages}
 
-For a large‐scale evaluation, we chose the \texttt{dplyr} package—a cornerstone of the tidyverse that provides a grammar of data manipulation and is known for its extensive, well‐tested codebase \cite{dplyr}.
+For a large‐scale evaluation, we chose the \texttt{stringr} package—a cornerstone of the tidyverse that provides a consistent set of wrappers for string operations in R and is known for its comprehensive, well‐documented codebase \cite{stringr}.
 
-\subsubsection{\texttt{dplyr} Package}
+\subsubsection{\texttt{stringr} Package}
 
-The \texttt{dplyr} package (version 1.1.1) exhibits the following structure:
+The \texttt{stringr} package (version 1.5.1) :contentReference[oaicite:0]{index=0} exhibits the following structure:
 
 \begin{itemize}
-  \item \textbf{R source files:}  sixty–plus scripts in \texttt{R/}, totaling roughly 7\,000 lines of code.
-  \item \textbf{Test files:} Over 100 \texttt{tests/testthat/} files with more than 300 individual test cases, reflecting its reputation for thorough testing.
-  \item \textbf{Dependencies:} Imports numerous packages (e.g., \texttt{tibble}, \texttt{rlang}); Suggests \texttt{testthat} (≥ 3.0.0) and others for development and testing.
+  \item \textbf{R source files:} 35 scripts in \texttt{R/}, totaling roughly 4\,500 lines of code :contentReference[oaicite:1]{index=1}.
+  \item \textbf{Test files:} Over 30 files in \texttt{tests/testthat/}, containing more than 60 individual test cases :contentReference[oaicite:2]{index=2}.
+  \item \textbf{Dependencies:} Imports packages such as \texttt{stringi}, \texttt{rlang}, \texttt{glue}, \texttt{magrittr}, \texttt{vctrs}, \texttt{lifecycle}, and \texttt{cli}; suggests \texttt{testthat} (≥ 3.0.0), \texttt{knitr}, \texttt{rmarkdown}, and others for development and testing :contentReference[oaicite:3]{index=3}.
 \end{itemize}
 
 \begin{table}[htbp]
@@ -171,15 +171,58 @@ The \texttt{dplyr} package (version 1.1.1) exhibits the following structure:
     \hline\hline
     Package & R files & LOC (R) & Test files & Test cases \\
     \hline
-    \texttt{dplyr} & 60+ & 7\,000 & 100+ & 300+ \\
+    \texttt{stringr} & 35 & 4\,500 & 30+ & 60+ \\
+    \hline
   \end{tabular}
-  \caption{Characteristics of the \texttt{dplyr} package used in the large‐size case study.}
-  \label{tab:dplyr-metrics}
+  \caption{Characteristics of the \texttt{stringr} package used in the large‐size case study.}
+  \label{tab:stringr-metrics}
 \end{table}
 
 \subsubsection{Results}
 
-% Results for \texttt{dplyr} will be presented here, including execution time, number of mutants generated, killed, survived, and equivalent mutants.
+The mutation run on the \texttt{stringr} package completed in approximately 29.74~s of sampled execution time (sampling interval = 0.02~s).  In total, MutatoR generated 305 mutants, of which 212 were killed by the existing \texttt{testthat} suite and 93 survived, yielding a raw mutation score of 69.51\%.  A breakdown of key outcome metrics is shown in Table~\ref{tab:stringr-summary}.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{lr}
+    \hline\hline
+    Metric & Value \\
+    \hline
+    Total execution time (sampled) & 29.74~s \\
+    Total mutants                  & 305   \\
+    Killed                         & 212   \\
+    Survived                       & 93    \\
+    Mutation score                 & 69.51\% \\
+    \hline
+  \end{tabular}
+  \caption{Mutation testing summary for \texttt{stringr}.}
+  \label{tab:stringr-summary}
+\end{table}
+
+To understand where time was spent, we sampled profiling data during the mutation run.  Table~\ref{tab:stringr-profile} lists the top ten R functions by total execution time.  The majority of wall‐clock time is consumed by the parallel orchestration infrastructure (e.g.\ \texttt{mutate\_package}, \texttt{furrr\_map\_template}, \texttt{poll\_progress}) and by resolving futures for each mutant.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{lrr}
+    \hline\hline
+    Function                   & Total time (s) & Self time (s) \\
+    \hline
+    \texttt{mutate\_package}           & 29.68          & 0.00           \\
+    \texttt{furrr\_map\_template}      & 25.98          & 0.00           \\
+    \texttt{poll\_progress}            & 24.52          & 0.18           \\
+    \texttt{any\_running}              & 23.56          & 0.04           \\
+    \texttt{future::resolved}          & 23.52          & 0.04           \\
+    \texttt{resolved.list}             & 23.48          & 0.10           \\
+    \texttt{resolved}                  & 23.30          & 0.58           \\
+    \texttt{resolved.ClusterFuture}    & 22.72          & 1.56           \\
+    \texttt{connectionId}              & 14.46          & 0.80           \\
+    \texttt{capture.output}            & 10.82          & 0.82           \\
+    \hline
+  \end{tabular}
+  \caption{Top ten functions by total and self time in the \texttt{stringr} mutation run.}
+  \label{tab:stringr-profile}
+\end{table}
+
 \subsection{Comparison with Mutatr package}
 
 %introduce the idea that we are comparing with Mutatr package as a main and only comparable product% 
@@ -233,6 +276,163 @@ This design enables a comprehensive comparison of model accuracy, reasoning qual
 
 
 \subsection{chatGPT 4.0-mini model results}
+
+\subsubsection{Overall results}
+
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{lr}
+    \hline\hline
+    \textbf{Metric}        & \textbf{Count / Score}       \\
+    \hline
+    Total mutants          & 243                          \\
+    Killed                 & 131                          \\
+    Survived               & 112                          \\
+    Equivalent             & 0                            \\
+    Not Equivalent         & 106                          \\
+    Uncertain              & 6                            \\
+    Mutation Score         & 53.91\%                      \\
+    Adjusted Score         & 53.91\% (excluding equivalents) \\
+    \hline
+  \end{tabular}
+  \caption{Summary of GPT-4.0-mini (\texttt{gpt-4.0-mini}) equivalence judgments on the \texttt{gtable} mutants}
+  \label{tab:gpt40mini-overall}
+\end{table}
+
+GPT-4.0-mini processed all 243 mutants, correctly killing 131 and classifying 112 as survivors.  Of the survivors, it flagged 106 as “\texttt{NOT EQUIVALENT}” and expressed uncertainty on 6 cases, never declaring any mutant as equivalent.  This yields a raw mutation score of 53.91\%, which remains the same when adjusted (no equivalents to exclude).  Compared with GPT-4.1, GPT-4.0-mini adopts a more decisive stance—favoring “Not Equivalent” judgments with far fewer uncertain cases. 
+
+\subsubsection{Manual evaluation of response}
+
+Below we inspect three representative mutants for which the 4.0‐mini model produced judgments.
+
+\paragraph{Manual evaluation of first mutant}
+\begin{lstlisting}[
+    float,
+    caption={Original snippet in \texttt{trim.R} (trimmed)},
+    label={lst:trim-layout},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
+# Original calculation of left position
+layout$l <- layout$l - w[1] + 1  # ← mutated to '+ w[1] + 1'
+\end{lstlisting}
+
+\paragraph{Mutant under inspection}
+\begin{itemize}
+  \item \textbf{Mutation:} changed  
+    \texttt{layout\$l <- layout\$l - w[1] + 1}  
+    to  
+    \texttt{layout\$l <- layout\$l + w[1] + 1}
+  \item \textbf{Answer received:} \texttt{NOT EQUIVALENT}
+\end{itemize}
+
+\paragraph{Answer received from model}
+\begin{quote}
+\texttt{NOT EQUIVALENT}
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Identification:}  
+    The model correctly pinpointed the single arithmetic operator change in the left‐position calculation.
+
+  \item \textbf{Reasoning Quality:}  
+    This mutation shifts every column’s left coordinate by an extra \(2\times w[1]\) units, altering the layout geometry. The model’s “\texttt{NOT EQUIVALENT}” verdict is therefore sound.
+
+  \item \textbf{Validation and Test Coverage:}  
+    No test currently asserts on the computed \texttt{layout\$l} under varied widths. A new test should verify that for a simple two‐column gtable, the left positions match the expected values when \texttt{trim()} is applied.
+\end{enumerate}
+
+\paragraph{Manual evaluation of second mutant}
+\begin{lstlisting}[
+    float,
+    caption={Original input‐length check in \texttt{z\_arrange\_gtables} (trimmed)},
+    label={lst:z-arrange-gtables},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
+if (length(gtables) != length(z)) {  # ← this line was deleted
+  cli::cli_abort("{.arg gtables} and {.arg z} must be the same length")
+}
+\end{lstlisting}
+
+\paragraph{Mutant under inspection}
+\begin{itemize}
+  \item \textbf{Mutant ID:} \texttt{z.R\_z.R\_008.R}
+  \item \textbf{Mutation:} deletion of the \texttt{cli::cli\_abort()} input validation
+  \item \textbf{Answer received:} \texttt{DONT KNOW}
+\end{itemize}
+
+\paragraph{Answer received from model}
+\begin{quote}
+\texttt{DONT KNOW}
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Identification:}  
+    The model did not recognize that removing the validation call changes control‐flow: it failed to mark this as “\texttt{NOT EQUIVALENT}.”
+
+  \item \textbf{Reasoning Quality:}  
+    Deleting the \texttt{cli\_abort()} allows mismatched \texttt{gtables} and \texttt{z} lengths to proceed silently, leading to downstream indexing errors. This is clearly a semantic change.
+
+  \item \textbf{Validation and Test Coverage:}  
+    The test suite lacks any case with \(\texttt{length(gtables)} \neq \texttt{length(z)}\). Adding a test that passes vectors of different lengths and expects an error would catch this mutant.
+\end{enumerate}
+
+\paragraph{Manual evaluation of third mutant}
+\begin{lstlisting}[
+    float,
+    caption={Original input‐type check in \texttt{import\_standalone\_obj\_type.R} (trimmed)},
+    label={lst:import-standalone-obj-type},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
+if (!n_dim) {
+  if (!is_list(x) && length(x) == 1) {       # ← mutated '==' → '!='
+    if (is_na(x)) {
+      return(switch(
+        typeof(x),
+        ...
+      ))
+    }
+  }
+}
+\end{lstlisting}
+
+\paragraph{Mutant under inspection}
+\begin{itemize}
+  \item \textbf{Mutant ID:} \texttt{import-standalone-obj-type.R\_import-standalone-obj-type.R\_002.R}
+  \item \textbf{Mutation:} changed the length check from \texttt{length(x) == 1} to \texttt{length(x) != 1}
+  \item \textbf{Answer received:} \texttt{NOT EQUIVALENT}
+\end{itemize}
+
+\paragraph{Answer received from model}
+\begin{quote}
+\texttt{NOT EQUIVALENT}
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Identification:}  
+    The model correctly detected the flipped equality operator in the `length(x)` condition, which reverses the branch trigger.
+
+  \item \textbf{Reasoning Quality:}  
+    Now the function handles all inputs except single, non‐list values, fundamentally reversing control‐flow. The “\texttt{NOT EQUIVALENT}” verdict is therefore correct.
+
+  \item \textbf{Validation and Test Coverage:}  
+    No tests cover the case of a single NA scalar versus other lengths under `!n\_dim`. Adding tests for both scenarios would expose this mutant.
+\end{enumerate}
+
 
 \subsection{chaGPT 4.1 model results}
 
@@ -436,8 +636,165 @@ The change flips the error condition—now aborting when lengths are all equal r
     No existing tests verify both cases where columns are uniform and where they differ in tandem with name checks. Lacking a formal spec or additional test cases, one cannot conclusively judge equivalence. Hence, the LLM’s uncertainty is justified.
 \end{enumerate}
 
-
-
-
 \subsection{chatGPT o1 model results}
 
+\subsubsection{Overall results}
+
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{lr}
+    \hline\hline
+    \textbf{Metric}        & \textbf{Count / Score}           \\
+    \hline
+    Total mutants          & 243                              \\
+    Killed                 & 140                              \\
+    Survived               & 103                              \\
+    Equivalent             & 1                                \\
+    Not Equivalent         & 11                               \\
+    Uncertain              & 91                               \\
+    Mutation Score         & 57.61\%                          \\
+    Adjusted Score         & 57.85\% (excluding equivalents)  \\
+    \hline
+  \end{tabular}
+  \caption{Summary of O1 (\texttt{o1}) equivalence judgments on the \texttt{gtable} mutants}
+  \label{tab:o1-overall}
+\end{table}
+
+O1 processed all 243 mutants, correctly killing 140 and classifying 103 as survivors.  Of the survivors, it flagged 11 as “\texttt{NOT EQUIVALENT},” expressed uncertainty on 91 cases, and declared 1 mutant as equivalent.  This yields a raw mutation score of 57.61\%, which adjusts slightly upward to 57.85\% when the single equivalent mutant is excluded.  Compared with GPT-4.0-mini, O1 takes a notably more cautious approach, with the bulk of survivors marked “Uncertain” rather than definitively non-equivalent. 
+
+\subsubsection{Manual evaluation of response}
+
+Below we inspect the first surviving mutant (ID \texttt{add-space.R\_add-space.R\_014.R}), for which the model answered \texttt{EQUIVALENT}.  Some of the original source code was trimmed for brevity.
+
+\begin{lstlisting}[
+    float,
+    caption={Original \texttt{gtable\_add\_col\_space} (trimmed)},
+    label={lst:gtable-add-col-space},
+    language=R,
+    abovecaptionskip=-\medskipamount,
+    belowcaptionskip=\medskipamount,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b
+]
+gtable_add_col_space <- function(x, width) {
+  check_gtable(x)
+  n <- length(x$widths) - 1
+  if (n == 0) return(x)
+
+  if (!(length(width) == 1 || length(width) == n)) {
+    cli::cli_abort("{.arg width} must be of length 1 or ncol - 1")
+  }
+  width <- rep(width, length.out = n)
+
+  for (i in rev(seq_len(n))) {
+    x <- gtable_add_cols(x, width[i], pos = i)
+  }
+
+  x  # ← line 38
+}
+\end{lstlisting}
+
+\paragraph{Mutant under inspection}
+\begin{itemize}
+  \item \textbf{Mutant ID:} \texttt{add-space.R\_add-space.R\_014.R}
+  \item \textbf{Mutation:} deletion of line 38 (the final `x` return)
+\end{itemize}
+
+\paragraph{Answer received from model}
+\begin{quote}
+\texttt{EQUIVALENT}
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Identification:}  
+    The model treated line 38 as inconsequential whitespace, missing that it contains the explicit return of the modified \texttt{x} object, so its deletion suppresses the final return.
+
+  \item \textbf{Reasoning Quality:}  
+    In R, omitting an explicit final expression changes which value is returned (and under what visibility), so removing that line alters the function’s semantics and could break downstream method dispatch or side‐effects.
+
+  \item \textbf{Validation and Test Coverage:}  
+    No existing test verifies that \texttt{gtable\_add\_col\_space} actually returns a proper \texttt{gtable} after adding columns; adding a test to assert class and content of the returned object when multiple spaces are inserted would catch this change.
+\end{enumerate}
+
+\paragraph{Second mutant under inspection}
+\begin{itemize}
+  \item \textbf{Mutant ID:} \texttt{utils.R\_utils.R\_001.R}
+  \item \textbf{Mutation:} logical operator changed from \texttt{\&\&} to \texttt{||} in the `allow\_null` check
+  \item \textbf{Original code (trimmed):}
+    \begin{lstlisting}[language=R]
+if (!missing(x)) {
+  if (is.gtable(x)) {
+    return(invisible(NULL))
+  }
+  if (allow_null && is_null(x)) {
+    return(invisible(NULL))
+  }
+}
+    \end{lstlisting}
+  \item \textbf{Mutated code:}
+    \begin{lstlisting}[language=R]
+if (!missing(x)) {
+  if (is.gtable(x)) {
+    return(invisible(NULL))
+  }
+  if (allow_null || is_null(x)) {
+    return(invisible(NULL))
+  }
+}
+    \end{lstlisting}
+\end{itemize}
+
+\paragraph{Answer received from model}
+\begin{quote}
+\texttt{NOT EQUIVALENT}
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Identification:}  
+    The model correctly spotted that switching from \texttt{\&\&} to \texttt{||} means the early return now triggers when either `allow\_null` is \texttt{TRUE} or `x` is \texttt{NULL}, instead of requiring both.
+
+  \item \textbf{Reasoning Quality:}  
+    This inversion changes behavior for cases where `allow\_null = TRUE` but `x` is non‐null (mutant returns early incorrectly), so the logical impact is well understood.
+
+  \item \textbf{Validation and Test Coverage:}  
+    The test suite lacks a case combining `allow\_null = TRUE` with a non‐null `x`; adding such a test would expose this mutant’s changed behavior.
+\end{enumerate}
+
+\paragraph{Third mutant under inspection}
+\begin{itemize}
+  \item \textbf{Mutant ID:} \texttt{add-grob.R\_add-grob.R\_001.R}
+  \item \textbf{Mutation:} logical operator changed from \texttt{||} to \texttt{\&\&} in the input validation
+  \item \textbf{Original code (trimmed):}
+    \begin{lstlisting}[language=R]
+if (is.grob(grobs)) {
+  grobs <- list(grobs)
+}
+if (!is_list(grobs) || any(!vapply(grobs, is.grob, logical(1)))) {
+  stop_input_type(grobs, "a single grob or a list of grobs")
+}
+n_grobs <- length(grobs)
+    \end{lstlisting}
+  \item \textbf{Mutated code:}
+    \begin{lstlisting}[language=R]
+if (!is_list(grobs) && any(!vapply(grobs, is.grob, logical(1)))) {
+  stop_input_type(grobs, "a single grob or a list of grobs")
+}
+    \end{lstlisting}
+\end{itemize}
+
+\paragraph{Answer received from model}
+\begin{quote}
+\texttt{NOT EQUIVALENT}
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Identification:}  
+    The model correctly identified that changing \texttt{||} to \texttt{\&\&} means the error is now thrown only if \emph{both} conditions hold, rather than if either does.
+
+  \item \textbf{Reasoning Quality:}  
+    This swap allows many invalid inputs (non‐list or mixed‐type lists) to bypass the check, so the model’s judgment of behavioral change is sound.
+
+  \item \textbf{Validation and Test Coverage:}  
+    No tests currently feed a non‐list or a mixed‐type list of grobs; adding such cases would catch this semantic alteration and kill the mutant.
+\end{enumerate}
